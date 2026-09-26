@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VentLab OS — PB12 Guided Screening System (Trial 2)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:#0b1220}
+  ::-webkit-scrollbar-thumb{background:#2c3a52;border-radius:5px}
+  ::-webkit-scrollbar-thumb:hover{background:#3b4d6b}
+  .tnum{font-variant-numeric:tabular-nums}
+  @keyframes pr{0%,100%{box-shadow:0 0 0 0 rgba(244,63,94,.55)}50%{box-shadow:0 0 0 12px rgba(244,63,94,0)}}
+  .alertr{animation:pr 1.5s infinite}
+  @keyframes pg{0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,.55)}50%{box-shadow:0 0 0 12px rgba(74,222,128,0)}}
+  .alertg{animation:pg 1.5s infinite}
+  @keyframes pb{0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,.5)}50%{box-shadow:0 0 0 10px rgba(56,189,248,0)}}
+  .alertb{animation:pb 1.5s infinite}
+  .fadein{animation:fi .25s ease}
+  @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .glass{background:rgba(15,23,42,.82);backdrop-filter:blur(14px)}
+  .stepnum{display:inline-flex;width:22px;height:22px;border-radius:7px;background:#0e7490;color:#fff;font-size:12px;font-weight:800;align-items:center;justify-content:center}
+  .kbd{border:1px solid #475569;border-bottom-width:2px;border-radius:6px;padding:0 6px;font-size:11px;background:#1e293b}
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen" style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif">
+
+<header class="sticky top-0 z-40 border-b border-slate-800 glass">
+  <div class="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+    <div class="flex items-center gap-2.5">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-violet-600 flex items-center justify-center text-xl shadow-lg shadow-cyan-900/40">🧫</div>
+      <div>
+        <h1 class="font-extrabold text-lg leading-tight bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent">VentLab OS</h1>
+        <p class="text-[11px] text-slate-400 leading-tight">PB12 guided screening · E. coli Vent polymerase · Trial 2</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 text-xs">
+      <div class="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700">Elapsed <span id="gElapsed" class="tnum font-bold text-cyan-300">—</span></div>
+      <div class="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700" id="nextWrap" style="max-width:420px">
+        <span class="text-slate-400">Next:</span> <span id="nextTxt" class="font-semibold">—</span>
+        <span id="nextIn" class="tnum text-amber-300"></span>
+      </div>
+      <button id="nextBtn" onclick="doNext()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold shadow-lg shadow-emerald-900/40">NEXT ▶</button>
+    </div>
+
+    <nav class="ml-auto flex flex-wrap gap-1 text-sm" id="navTabs"></nav>
+  </div>
+</header>
+
+<main id="view" class="max-w-[1600px] mx-auto px-4 py-5"></main>
+<div id="modalRoot"></div>
+<div id="toastRoot" class="fixed bottom-4 right-4 z-[70] space-y-2"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   VENTLAB OS — core engine
+   Guided protocol system for a 12-run Plackett–Burman screening of
+   E. coli Vent polymerase expression. The system decides; you confirm.
+   ===================================================================== */
+const LS='ventlab_os_v2';
+
+/* ---------- PB12 design (handwritten notes, Trial 2) ---------- */
+const DESIGN=[
+ {run:1, gly:0.8, phos:50, iptg:0.1, temp:37, expH:24, od:1.2, mg:0,  ye:0},
+ {run:2, gly:0.0, phos:50, iptg:1.0, temp:20, expH:24, od:1.2, mg:10, ye:0},
+ {run:3, gly:0.8, phos:0,  iptg:1.0, temp:37, expH:4,  od:1.2, mg:10, ye:10},
+ {run:4, gly:0.0, phos:50, iptg:0.1, temp:37, expH:24, od:0.4, mg:10, ye:10},
+ {run:5, gly:0.0, phos:0,  iptg:1.0, temp:20, expH:24, od:1.2, mg:0,  ye:10},
+ {run:6, gly:0.0, phos:0,  iptg:0.1, temp:37, expH:4,  od:1.2, mg:10, ye:0},
+ {run:7, gly:0.8, phos:0,  iptg:0.1, temp:20, expH:24, od:0.4, mg:10, ye:10},
+ {run:8, gly:0.8, phos:50, iptg:0.1, temp:20, expH:4,  od:1.2, mg:0,  ye:10},
+ {run:9, gly:0.8, phos:50, iptg:1.0, temp:20, expH:4,  od:0.4, mg:10, ye:0},
+ {run:10,gly:0.0, phos:50, iptg:1.0, temp:37, expH:4,  od:0.4, mg:0,  ye:10},
+ {run:11,gly:0.8, phos:0,  iptg:1.0, temp:37, expH:24, od:0.4, mg:0,  ye:0},
+ {run:12,gly:0.0, phos:0,  iptg:0.1, temp:20, expH:4,  od:0.4, mg:0,  ye:0},
+];
+const FACTORS=[
+ {key:'gly', label:'Glycerol', hi:0.8, lo:0.0, unit:'%'},
+ {key:'phos',label:'Phosphate', hi:50, lo:0, unit:'mM'},
+ {key:'iptg',label:'IPTG', hi:1.0, lo:0.1, unit:'mM'},
+ {key:'temp',label:'Temperature', hi:37, lo:20, unit:'°C'},
+ {key:'expH',label:'Time to induce', hi:24, lo:4, unit:'h'},
+ {key:'od',  label:'OD600 target', hi:1.2, lo:0.4, unit:''},
+ {key:'mg',  label:'MgSO4', hi:10, lo:0, unit:'mM'},
+ {key:'ye',  label:'Yeast extract', hi:10, lo:0, unit:'g/L'},
+];
+const LABELS='ABCDEFGHIJKL';
+
+/* ---------- stock catalog ---------- */
+const SUBSTANCES={
+ Gly: {name:'Glycerol',  unit:'% v/v',   def:100, hint:'pure = 100%'},
+ Phos:{name:'Phosphate buffer', unit:'mM', def:1000, hint:'e.g. 1 M K-phosphate = 1000 mM'},
+ YE:  {name:'Yeast extract solution', unit:'g/L', def:200, hint:'e.g. 20% w/v = 200 g/L'},
+ Mg:  {name:'MgSO4', unit:'mM', def:1000, hint:'1 M = 1000 mM'},
+ IPTG:{name:'IPTG', unit:'mM', def:1000, hint:'1 M = 1000 mM · notes may use 100 or 1000'},
+ Amp: {name:'Ampicillin', unit:'mg/mL', def:100, hint:'100 mg/mL working stock'},
+};
+
+/* ---------- state ---------- */
+function defaultState(){
+  const stocks={}; for(const k in SUBSTANCES) stocks[k]={c:SUBSTANCES[k].def};
+  return {
+    version:2,
+    expName:'PB12 Trial 2 — Vent polymerase',
+    settings:{
+      baseUl:10000,        // base media poured per flask (10 mL)
+      equalizeWater:true,  // top up with sterile water so all flasks have equal volume
+      totalUl:10000,       // legacy alias
+      inocUl:150,          // inoculum volume
+      odSampleUl:200,      // per-measurement sample volume
+      ampUl:10,            // Amp per flask
+      readerMaxOd:1.2,
+      nBatches:4,          // 4 handling batches x 3 flasks (random, anti batch-effect)
+      postInd:{37:4,20:12},// post-IPTG hours by temp
+      order:null,          // random physical order (labels A..L -> runs)
+      seedsOk:false,
+    },
+    stocks,
+    flasks:null, // built by initFlasks()
+    dismissed:{}, view:'wizard', selRun:1, globalLog:[],
+    randomSeed:null, randomizedAt:null,
+  };
+}
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function initFlasks(order){
+  if(!order) order=S.settings.order||DESIGN.map(d=>d.run);
+  S.settings.order=order;
+  S.flasks=order.map((run,i)=>({
+    run, label:LABELS[i], batch:Math.floor(i/3)+1,
+    step:'prep',          // prep -> growth -> induced -> done
+    startTs:null, totalVol:0, startTotal:0, cappedOk:false,
+    additions:[], ods:[],
+    iptgUl:null, incubTemp:null, incubH:null, incubEnds:null, inducedTs:null,
+    harvested:false, harvestedTs:null,
+    response:null, log:[]
+  }));
+}
+function mkFlasks(){ if(!S.flasks){ const o=S.settings.order||DESIGN.map(d=>d.run); initFlasks(o); } }
+function assignRun(label,newRun){ // user-driven flask<->run re-assignment (swap)
+  const a=fL(label); if(!a) return;
+  if(a.step!=='prep'){ toast('🔒 Flask '+label+' is already growing — assignment locked.','bg-red-900 border border-red-500'); return; }
+  newRun=Number(newRun); const b=fR(newRun); if(!b||b.label===label){ save(); render(); return; }
+  const old=a.run; a.run=newRun; b.run=old;
+  logg(null,'setup','You assigned flask '+label+' = run '+newRun+' (run '+old+' moved to flask '+b.label+').');
+  save(); render();
+}
+function randomizeNow(){
+  const order=shuffle(DESIGN.map(d=>d.run));
+  initFlasks(order); S.randomSeed=Math.floor(Math.random()*1e6); S.randomizedAt=Date.now();
+  save(); logg(null,'setup','Flask order randomized: labels A–L assigned to runs '+order.join(','));
+}
+function reassign(){ initFlasks(S.settings.order); }
+
+let S=(()=>{ try{ const raw=localStorage.getItem(LS); if(raw){ const s=JSON.parse(raw); if(s&&s.version===2&&s.settings){ return s; } } }catch(e){} return defaultState(); })();
+mkFlasks();
+function save(){ try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){ console.error(e); } }
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const n1=n=>Number(n).toFixed(1);
+const n2=n=>Number(n).toFixed(2);
+const now=()=>Date.now();
+function hms(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60); return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function hmsShort(ms){ if(ms<0)return '0h'; const h=ms/3.6e6; return h>=48? (h/24).toFixed(1)+'d' : h>=1? h.toFixed(1)+'h' : (ms/6e4).toFixed(0)+'min'; }
+function fL(label){ return S.flasks.find(x=>x.label===label); }      // flask by physical label
+function fR(run){ return S.flasks.find(x=>x.run===Number(run)); }     // flask by design run
+function M(fl){ return DESIGN[fl.run-1]; }
+function sumAdd(fl,sub){ return fl.additions.filter(a=>a.sub===sub).reduce((t,a)=>t+a.ul,0); }
+function lastOd(fl){ return fl.ods.length? fl.ods[fl.ods.length-1] : null; }
+function effOd(o){ return o.od*o.dil; }
+function logg(fl,type,text){ const e={ts:now(), label:fl?fl.label:null, run:fl?fl.run:null, type, text}; S.globalLog.push(e); if(fl) fl.log.push(e); save(); }
+
+/* ---------- recipe engine: exact µL from YOUR stocks ----------
+   Media model (per your notes):
+   - 10 mL base media goes into EVERY flask first,
+   - design supplements are added ON TOP (µL computed from your stocks),
+   - flasks with fewer supplements get sterile WATER so all 12 finish EQUAL. */
+function supBase(fl){ const m=M(fl), T=S.settings.baseUl; return {
+    Gly:  m.gly>0 ?  m.gly *T/S.stocks.Gly.c  : 0,
+    Phos: m.phos>0? m.phos*T/S.stocks.Phos.c : 0,
+    YE:   m.ye>0  ?  m.ye  *T/S.stocks.YE.c  : 0,
+    Mg:   m.mg>0  ?  m.mg  *T/S.stocks.Mg.c  : 0 }; }
+function supRows(){ const rows={}; let maxSum=0;
+  S.flasks.forEach(fl=>{ const b=supBase(fl);
+    const r={Gly:Math.round(b.Gly),Phos:Math.round(b.Phos),YE:Math.round(b.YE),Mg:Math.round(b.Mg)};
+    r.sum=r.Gly+r.Phos+r.YE+r.Mg; rows[fl.label]=r; if(r.sum>maxSum) maxSum=r.sum; });
+  return {rows,maxSum}; }
+function recipe(fl){
+  const st=S.settings, sr=supRows(), r=sr.rows[fl.label];
+  r.Water = st.equalizeWater ? (sr.maxSum - r.sum) : 0;
+  r.Amp = st.ampUl;
+  r.base = st.baseUl;                       // full base media in each flask
+  r.inoc = st.inocUl;
+  r.finalVol = r.base + r.Gly + r.Phos + r.YE + r.Mg + r.Water + r.Amp + r.inoc; // equal for ALL flasks
+  return r;
+}
+function iptgUlFor(fl){
+  const m=M(fl);
+  return m.iptg * fl.totalVol / (S.stocks.IPTG.c||1); // design mM * current µL / stock mM
+}
+/* media groups: runs with identical media composition (gly/phos/ye/mg) */
+function mediaGroups(){
+  const g={};
+  S.flasks.forEach(fl=>{ const m=M(fl); const key=m.gly+'|'+m.phos+'|'+m.ye+'|'+m.mg;
+    (g[key]=g[key]||{key, gly:m.gly, phos:m.phos, ye:m.ye, mg:m.mg, flasks:[]}).flasks.push(fl); });
+  return Object.values(g).sort((a,b)=>b.flasks.length-a.flasks.length);
+}
+
+
+/* ---------- concentration tracker ---------- */
+function concOf(fl,key){ // current mM (or %v/v for Gly) from logged additions
+  const mmMap={Phos:1, Mg:1, IPTG:1}; // mM stocks
+  if(key==='Gly') return 100*sumAdd(fl,'Gly')/Math.max(fl.totalVol,1);
+  if(key==='YE')  return sumAdd(fl,'YE')*(S.stocks.YE.c)/Math.max(fl.totalVol,1);
+  return sumAdd(fl,key)*(S.stocks[key]?S.stocks[key].c:0)/Math.max(fl.totalVol,1);
+}
+
+/* ---------- status / step states ---------- */
+const ST={
+ lab:  {txt:'Empty flask',       liq:'#334155', badge:'bg-slate-800 text-slate-300 border border-slate-600'},
+ grow: {txt:'Growing',           liq:'#0ea5e9', badge:'bg-sky-900/70 text-sky-300 border border-sky-600'},
+ warn: {txt:'Measure OD now',    liq:'#facc15', badge:'bg-yellow-900/60 text-yellow-300 border border-yellow-600'},
+ indc: {txt:'READY: add IPTG',   liq:'#4ade80', badge:'bg-green-900/70 text-green-300 border border-green-500'},
+ incub:{txt:'Expressing',       liq:'#a78bfa', badge:'bg-violet-900/70 text-violet-300 border border-violet-600'},
+ harv: {txt:'HARVEST NOW',       liq:'#fb923c', badge:'bg-orange-900/70 text-orange-300 border border-orange-500'},
+ over: {txt:'OVERDUE',           liq:'#ef4444', badge:'bg-red-900/70 text-red-300 border border-red-500'},
+ done: {txt:'Harvested ✓',       liq:'#059669', badge:'bg-emerald-900/60 text-emerald-300 border border-emerald-600'},
+};
+
+function ozdReached(fl){ const lo=lastOd(fl); return lo && effOd(lo) >= M(fl).od - 0.001; }
+
+function status(fl){
+  if(fl.step==='prep') return 'lab';
+  if(fl.harvested) return 'done';
+  if(fl.step==='induced') return (fl.incubEnds && now()>=fl.incubEnds) ? 'harv' : 'incub';
+  if(ozdReached(fl)) return 'indc';
+  if(overdue(fl)) return 'over';
+  if(measureDue(fl)) return 'warn';
+  return 'grow';
+}
+function overdue(fl){
+  if(fl.step!=='growth') return false;
+  const t=predictHit(fl); if(!t || isNaN(t)) return false;
+  return now() > t + 2*3.6e6; // 2 h past predicted induction point
+}
+function growRate(fl){ // per hour, ln basis
+  const pts=fl.ods.filter(o=>effOd(o)>0);
+  if(pts.length>=2){
+    const lns=pts.map(o=>({x:(o.ts-fl.startTs)/3.6e6, y:Math.log(effOd(o))}));
+    const n=lns.length, mx=lns.reduce((t,p)=>t+p.x,0)/n, my=lns.reduce((t,p)=>t+p.y,0)/n;
+    let num=0,den=0; lns.forEach(p=>{num+=(p.x-mx)*(p.y-my); den+=(p.x-mx)**2;});
+    const mu=den>1e-9? num/den : NaN;
+    if(isFinite(mu)&&mu>0.1&&mu<3.5) return mu;
+  }
+  return M(fl).temp>=30 ? 0.9 : 0.45; // fallback: slower at 20°C
+}
+function predictHit(fl){ // timestamp when OD600 should reach the design target
+  const m=M(fl);
+  if(fl.step==='prep') return null;
+  const lo=lastOd(fl);
+  if(!lo || effOd(lo)<=0){ return fl.startTs + m.expH*3.6e6; }
+  const mu=growRate(fl), dTar=Math.log(m.od/effOd(lo));
+  const dt = dTar>0 ? dTar/mu : 0;
+  return lo.ts + dt*3.6e6;
+}
+function measureDue(fl){ // starts 15% before the predicted induction point
+  if(fl.step!=='growth'||ozdReached(fl)) return false;
+  const t=predictHit(fl); if(!t||isNaN(t)) return false;
+  return now() >= t - 0.15*Math.max(t-fl.startTs, 3.6e6);
+}
+
+/* ---------- alerts + NEXT engine ---------- */
+function alerts(){
+  const out=[];
+  S.flasks.forEach(fl=>{
+    const m=M(fl), st=status(fl);
+    if(st==='lab' && anyStarted()) out.push({id:fl.label+'-prep', lvl:'info', fl, text:'Flask '+fl.label+' (run '+fl.run+') is empty — prepare media batch '+fl.batch+'.'});
+    if(st==='warn') out.push({id:fl.label+'-m', lvl:'warn', fl, text:'Flask '+fl.label+' (run '+fl.run+'): predicted induction point at '+new Date(predictHit(fl)).toLocaleTimeString()+' — measure OD600 now (target '+m.od+').'});
+    if(st==='indc') out.push({id:fl.label+'-i', lvl:'crit', fl, text:'Flask '+fl.label+' (run '+fl.run+'): OD target '+m.od+' reached → add '+n2(iptgUlFor(fl))+' µL IPTG ('+m.iptg+' mM design), then '+postIndH(m.temp)+' h @ '+m.temp+'°C.'});
+    if(st==='harv') out.push({id:fl.label+'-h', lvl:'crit', fl, text:'Flask '+fl.label+' (run '+fl.run+'): expression finished → centrifuge 12,000 rpm / 15 min, store pellet.'});
+    if(st==='over') out.push({id:fl.label+'-o', lvl:'crit', fl, text:'Flask '+fl.label+' (run '+fl.run+'): OVERDUE (predicted OD '+m.od+' was '+new Date(predictHit(fl)).toLocaleTimeString()+') — measure OD immediately.'});
+  });
+  return out.filter(a=>!S.dismissed[a.id]);
+}
+function postIndH(temp){ const p=S.settings.postInd; return p[temp]!=null? p[temp] : (temp>=30?4:12); }
+
+function nextActions(){ // ordered queue: what to DO next
+  const q=[];
+  S.flasks.forEach(fl=>{ const st=status(fl);
+    if(st==='harv') q.push({p:1, fl, act:'harvest'});
+    if(st==='indc') q.push({p:2, fl, act:'induce'});
+    if(st==='over') q.push({p:3, fl, act:'od'});
+    if(st==='warn') q.push({p:4, fl, act:'od'});
+  });
+  if(!anyStarted()){
+    const first=S.flasks.filter(x=>x.step==='prep').slice(0,3);
+    if(first.length) q.push({p:5, fl:first[0], act:'prep', batch:first[0].batch});
+  } else {
+    const prepped=S.flasks.filter(x=>x.step==='prep');
+    if(prepped.length) q.push({p:6, fl:prepped[0], act:'prep', batch:prepped[0].batch});
+  }
+  q.sort((a,b)=>a.p-b.p);
+  return q;
+}
+function anyStarted(){ return S.flasks.some(x=>x.step!=='prep'); }
+function nextEventTs(){ // informational countdown for header
+  const ts=[];
+  S.flasks.forEach(fl=>{ if(fl.step==='growth'&&predictHit(fl)) ts.push({t:predictHit(fl), txt:'Flask '+fl.label+' OD'});
+    if(fl.step==='induced'&&fl.incubEnds>now()) ts.push({t:fl.incubEnds, txt:'Flask '+fl.label+' harvest'}); });
+  return ts.sort((a,b)=>a.t-b.t)[0]||null;
+}
+
+/* =================== MODAL SYSTEM =================== */
+let modalOpen=false;
+function openModal(html){
+  modalOpen=true;
+  $('#modalRoot').innerHTML='<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto" onclick="if(event.target===this) closeModal()"><div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xl my-8 p-5 shadow-2xl fadein">'+html+'</div></div>';
+}
+function closeModal(){ modalOpen=false; $('#modalRoot').innerHTML=''; render(); }
+function gval(n){ const e=document.querySelector('.modal-in[name='+n+']'); if(!e) return undefined; const v=e.value; if(v===''||v==null) return undefined; return parseFloat(v); }
+function gstr(n){ const e=document.querySelector('.modal-in[name='+n+']'); return e? e.value : ''; }
+
+function toast(msg, cls){
+  const d=document.createElement('div');
+  d.className='px-4 py-2.5 rounded-xl text-sm shadow-2xl fadein '+(cls||'glass border border-slate-700');
+  d.innerHTML=msg;
+  $('#toastRoot').appendChild(d);
+  setTimeout(()=>d.remove(), 4500);
+}
+
+/* =================== GUIDED ACTIONS =================== */
+
+/* --- 1. media prep + inoculation (per batch, one confirm) --- */
+function confPrep(b){
+  const fls=S.flasks.filter(x=>x.batch===b && x.step==='prep');
+  if(!fls.length){ toast('Batch '+b+' already prepared.','glass border border-slate-600'); return; }
+  let rows=fls.map(fl=>{
+    const r=recipe(fl);
+    return '<tr class="border-t border-slate-800"><td class="px-2 py-1.5 font-bold">'+fl.label+'</td>'+
+      '<td class="px-2 py-1.5 text-[11px] text-slate-300 leading-relaxed">'+
+        '<b class="text-cyan-300">'+Math.round(r.base)+' µL</b> base media (10 mL, first) · then on top: Gly '+Math.round(r.Gly)+' · Phos '+Math.round(r.Phos)+' · YE '+Math.round(r.YE)+' · Mg '+Math.round(r.Mg)+' · <span class="text-sky-300">Water '+Math.round(r.Water)+' µL</span> (equalize) · Amp '+Math.round(r.Amp)+' µL<br>'+
+        '→ finish with <b class="text-emerald-300">'+r.inoc+' µL</b> inoculum (run '+fl.run+'). Incubate at <b>'+M(fl).temp+'°C</b> · total '+r.finalVol+' µL (same in all flasks)'+
+      '</td></tr>';
+  }).join('');
+  openModal(
+    '<h3 class="text-lg font-bold">Batch '+b+' — media + inoculation</h3>'+
+    '<p class="text-xs text-slate-400 mb-3">Pipette into each flask exactly as printed, in this order: base media → glycerol → phosphate → yeast extract → MgSO₄ → Amp → inoculum last. One confirmation covers all '+fls.length+' flasks.</p>'+
+    '<table class="w-full text-xs">'+rows+'</table>'+
+    '<div class="text-[11px] text-slate-500 mt-2">Base media: '+S.settings.baseUl+' µL per flask; supplements on top; sterile water tops up flasks with fewer supplements, so every flask ends at the SAME volume. All from your Inventory stocks.</div>'+
+    '<div class="flex gap-2 mt-4">'+
+      '<button onclick="doPrep('+b+')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-extrabold">✔ Prepared & inoculated — start clocks</button>'+
+      '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">Cancel</button>'+
+    '</div>');
+}
+function doPrep(b){
+  const fls=S.flasks.filter(x=>x.batch===b && x.step==='prep');
+  fls.forEach(fl=>{
+    const r=recipe(fl);
+    fl.step='growth'; fl.startTs=now(); fl.totalVol=r.finalVol; fl.startTotal=r.finalVol;
+    [['Gly',r.Gly],['Phos',r.Phos],['YE',r.YE],['Mg',r.Mg],['Amp',r.Amp],['Water',r.Water]].forEach(([k,v])=>{
+      if(v>0) fl.additions.push({sub:k, ul:v, ts:fl.startTs, note:'prep'});
+    });
+    logg(fl,'prep','Flask '+fl.label+' prepared: base '+r.base+' + Gly '+r.Gly+' + Phos '+r.Phos+' + YE '+r.YE+' + Mg '+r.Mg+' + water '+r.Water+' + Amp '+r.Amp+' (incl. '+r.inoc+' µL inoculum) = '+r.finalVol+' µL total → growth @ '+M(fl).temp+'°C, target OD '+M(fl).od);
+  });
+  delete S.dismissed['setup-lock'];
+  toast('✅ Batch '+b+' live — clocks running','bg-emerald-900 border border-emerald-500 alertg');
+  closeModal();
+}
+function mapSub(s){ return {'Glycerol':'Gly','Phosphate':'Phos','Yeast extract':'YE','Yeast extract solution':'YE','Ampicillin':'Amp','IPTG':'IPTG','MgSO4':'Mg','Other':'Other'}[s]||s; }
+
+/* --- 2. OD measurement (only the reading is typed) --- */
+function modalOd(label){
+  const fl=fL(label), m=M(fl);
+  const lo=lastOd(fl);
+  openModal(
+    '<h3 class="text-lg font-bold">Measure OD600 — flask '+label+' <span class="text-xs text-slate-400">(run '+fl.run+', target '+m.od+')</span></h3>'+
+    '<p class="text-xs text-slate-400 mb-3">'+(lo?'Last OD: <b>'+n2(effOd(lo))+'</b> · ':'')+'Sample '+S.settings.odSampleUl+' µL is subtracted automatically. If raw OD &gt; '+S.settings.readerMaxOd+', dilute and tap a ×factor.</p>'+
+    '<div class="space-y-3 text-sm">'+
+      '<label class="block">OD600 reading *<input name="od" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 text-lg tnum" placeholder="e.g. 0.35" autofocus></label>'+
+      '<div class="flex flex-wrap gap-2 items-center text-xs">'+
+        '<span class="text-slate-400">Dilution:</span>'+
+        '<button onclick="setDil(1)" class="dilbtn px-3 py-1.5 rounded-lg bg-cyan-600 font-bold" data-d="1">×1</button>'+
+        '<button onclick="setDil(2)" class="dilbtn px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600" data-d="2">×2</button>'+
+        '<button onclick="setDil(5)" class="dilbtn px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600" data-d="5">×5</button>'+
+        '<span class="text-slate-400 ml-3">Sample volume:</span><input name="sv" type="number" class="modal-in w-24 bg-slate-800 border border-sky-900/40 focus:border-sky-500 rounded-lg px-2 py-1.5" value="'+S.settings.odSampleUl+'"> µL'+
+      '</div>'+
+    '</div>'+
+    '<div class="flex gap-2 mt-4">'+
+      '<button onclick="doOd(\''+label+'\')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 text-slate-950 font-extrabold">✔ Log OD</button>'+
+      '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">Cancel</button>'+
+    '</div>');
+}
+let DIL=1;
+function setDil(d){ DIL=d; document.querySelectorAll('.dilbtn').forEach(b=>{ const on=+b.getAttribute('data-d')===d; b.className='dilbtn px-3 py-1.5 rounded-lg font-bold '+(on?'bg-cyan-600':'bg-slate-800 border border-slate-600'); }); }
+function doOd(label){
+  const fl=fL(label), m=M(fl);
+  const od=gval('od'); if(od==null||od<0){ toast('⚠ Type the OD reading','bg-red-900 border border-red-500'); return; }
+  const sv=gval('sv')!=null? gval('sv') : S.settings.odSampleUl;
+  fl.totalVol=Math.max(0, fl.totalVol-(sv||0));
+  fl.ods.push({ts:now(), od, dil:DIL, volUl:sv});
+  delete S.dismissed[label+'-m']; delete S.dismissed[label+'-o'];
+  logg(fl,'od','OD600 = '+od+(DIL>1?' ×'+DIL+' = '+n2(od*DIL):'')+' (sample '+sv+' µL → vol '+fl.totalVol.toFixed(0)+' µL)');
+  const eff=od*DIL;
+  const rec=iptgUlFor(fl);
+  if(eff>=m.od && fl.step==='growth'){
+    const h=postIndH(m.temp);
+    toast('🎯 Flask '+label+': OD '+m.od+' reached! Next: '+n2(rec)+' µL IPTG → '+h+' h @ '+m.temp+'°C','bg-green-900 border border-green-500 alertg');
+    closeModal(); modalInduce(label); return;
+  }
+  const t=predictHit(fl);
+  const mu=growRate(fl);
+  toast('✅ OD '+n2(eff)+' logged. Predicted reach '+m.od+' at ~'+(t?new Date(t).toLocaleTimeString():'?')+' (μ≈'+n2(mu)+'/h)','bg-emerald-900 border border-emerald-500');
+  DIL=1; closeModal();
+}
+
+/* --- 3. induction (IPTG µL precomputed, one confirm) --- */
+function modalInduce(label){
+  const fl=fL(label), m=M(fl);
+  const rec=n2(iptgUlFor(fl));
+  const h=postIndH(m.temp);
+  openModal(
+    '<h3 class="text-lg font-bold">Induce — flask '+label+' <span class="text-xs text-slate-400">(run '+fl.run+', '+m.iptg+' mM design)</span></h3>'+
+    '<p class="text-xs text-slate-400 mb-3">Calculated for the current volume ('+fl.totalVol.toFixed(0)+' µL) and your IPTG stock ('+S.stocks.IPTG.c+' mM). Tap the pre-filled value if you pipette exactly that.</p>'+
+    '<div class="space-y-3 text-sm">'+
+      '<label class="block">IPTG to add (µL):<input name="iu" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 text-lg tnum font-bold text-emerald-300" value="'+rec+'"></label>'+
+      '<div class="text-xs text-slate-300 bg-slate-800/70 rounded-xl p-3">After IPTG: incubate <b class="text-violet-300">'+h+' h @ '+m.temp+'°C</b>'+
+      ' <span class="text-slate-400">(post-induction plan from your notes: 4 h @ 37°C / 12 h @ 20°C)</span>'+
+        '<div class="mt-2 flex flex-wrap gap-2">'+
+          [2,4,8,12,16,24].map(x=>'<button onclick="document.querySelector(\'.modal-in[name=ih]\').value='+x+'" class="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs">'+x+' h</button>').join('')+
+        '</div>'+
+      '</div>'+
+      '<label class="block">Post-IPTG time (h):<input name="ih" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" value="'+h+'"></label>'+
+      '<label class="flex items-center gap-2 text-xs text-slate-300 bg-slate-800/70 rounded-xl p-2"><input type="checkbox" name="weq" class="modal-in w-4 h-4" '+((m.iptg<1.0&&S.settings.equalizeWater)?'checked':'')+'> also add <b class="text-sky-300">'+n2(waterEqUl(fl))+ ' µL sterile water</b> (top-up: 1.0 mM design adds more IPTG, so equalize final volume)</label>'+
+    '</div>'+
+    '<div class="flex gap-2 mt-4">'+
+      '<button onclick="doInduce(\''+label+'\')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-slate-950 font-extrabold alertg">✔ IPTG in — start expression timer</button>'+
+      '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">Cancel</button>'+
+    '</div>');
+}
+function doInduce(label){
+  const fl=fL(label), m=M(fl);
+  let iu=gval('iu'); if(iu==null) iu=iptgUlFor(fl);
+  let ih=gval('ih'); if(ih==null) ih=postIndH(m.temp);
+  if(iu<0||ih<=0){ toast('⚠ Invalid IPTG volume or time','bg-red-900 border border-red-500'); return; }
+  fl.additions.push({sub:'IPTG', ul:+iu.toFixed(2), ts:now(), note:'induction'});
+  fl.totalVol+=iu;
+  const weqc=document.querySelector('.modal-in[name=weq]');
+  const wq=(weqc&&weqc.checked)? waterEqUl(fl,iu) : 0;
+  if(wq>0){ fl.additions.push({sub:'Water', ul:+wq.toFixed(1), ts:now(), note:'IPTG equalization'}); fl.totalVol+=wq; }
+  fl.step='induced'; fl.inducedTs=now(); fl.iptgUl=iu; fl.incubTemp=m.temp; fl.incubH=ih;
+  fl.incubEnds=now()+ih*3.6e6;
+  delete S.dismissed[label+'-i']; delete S.dismissed[label+'-h'];
+  logg(fl,'induce','Induced: '+iu+' µL IPTG (≈'+n2(iptgMmNow(fl))+' mM, design '+m.iptg+'). Expression '+ih+' h @ '+m.temp+'°C → harvest ~'+new Date(fl.incubEnds).toLocaleTimeString());
+  toast('🧪 Flask '+label+' expressing — harvest in '+hms(fl.incubEnds-now()),'bg-violet-900 border border-violet-500');
+  closeModal();
+}
+function iptgMmNow(fl){ return S.stocks.IPTG.c*sumAdd(fl,'IPTG')/Math.max(fl.totalVol,1); }
+function waterEqUl(fl,iu){ // water so that 0.1 mM and 1.0 mM flasks end at equal volume
+  const maxIptg=1.0*fl.totalVol/S.stocks.IPTG.c;
+  return Math.max(0, maxIptg-(iu!=null?iu:iptgUlFor(fl)));
+}
+
+/* --- 4. harvest --- */
+function modalHarvest(label){
+  const fl=fL(label);
+  openModal(
+    '<h3 class="text-lg font-bold">Harvest — flask '+label+' <span class="text-xs text-slate-400">(run '+fl.run+')</span></h3>'+
+    '<p class="text-sm text-slate-300 my-3">Expression finished. Pellet now:</p>'+
+    '<ol class="text-sm list-decimal ml-5 space-y-1 text-slate-200">'+
+      '<li>Transfer culture to centrifuge tubes.</li>'+
+      '<li>Centrifuge <b>12,000 rpm · 15 min · 4°C</b>.</li>'+
+      '<li>Discard supernatant, keep pellet (label <b>'+label+'</b>).</li>'+
+    '</ol>'+
+    '<div class="flex gap-2 mt-4">'+
+      '<button onclick="doHarvest(\''+label+'\')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-extrabold">✔ Centrifuged — flask done</button>'+
+      '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">Cancel</button>'+
+    '</div>');
+}
+function doHarvest(label){
+  const fl=fL(label);
+  fl.harvested=true; fl.harvestedTs=now(); fl.step='done';
+  delete S.dismissed[label+'-h'];
+  logg(fl,'harvest','Pelleted: 12,000 rpm, 15 min. Flask '+label+' (run '+fl.run+') complete.');
+  toast('✅ Flask '+label+' harvested','bg-emerald-900 border border-emerald-500');
+  closeModal();
+}
+
+/* --- 5. NXT button --- */
+function doNext(){
+  const q=nextActions();
+  if(!q.length){
+    const e=nextEventTs();
+    toast(e? '⏳ All on track. Next: '+e.txt+' at '+new Date(e.t).toLocaleTimeString() : '🎯 Nothing pending — screen complete!', 'glass border border-slate-600');
+    return;
+  }
+  const a=q[0];
+  if(a.act==='prep') confPrep(a.batch);
+  else if(a.act==='od'){ DIL=1; modalOd(a.fl.label); }
+  else if(a.act==='induce') modalInduce(a.fl.label);
+  else if(a.act==='harvest') modalHarvest(a.fl.label);
+}
+function openFor(label, what){ const fl=fL(label); const st=status(fl);
+  if(what==='od'){ DIL=1; modalOd(label); return; }
+  if(what==='induce'){ modalInduce(label); return; }
+  if(what==='harvest'){ modalHarvest(label); return; }
+  if(what==='add') modalAdd(label);
+}
+/* --- extra correction: add substance manually --- */
+function modalAdd(label){
+  openModal(
+    '<h3 class="text-lg font-bold">Manual addition — flask '+label+'</h3>'+
+    '<p class="text-xs text-slate-400 mb-3">For corrections/top-ups. Volume is added to the flask balance.</p>'+
+    '<div class="space-y-3 text-sm">'+
+      '<label class="block">Substance<select name="as" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5">'+
+        Object.keys(SUBSTANCES).map(k=>'<option value="'+k+'">'+SUBSTANCES[k].name+'</option>').join('')+'<option value="Other">Other</option></select></label>'+
+      '<label class="block">Volume (µL)<input name="au" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum"></label>'+
+    '</div>'+
+    '<div class="flex gap-2 mt-4">'+
+      '<button onclick="doAdd(\''+label+'\')" class="px-5 py-2.5 rounded-xl bg-cyan-600 text-slate-950 font-extrabold">✔ Add</button>'+
+      '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">Cancel</button>'+
+    '</div>');
+}
+function doAdd(label){
+  const fl=fL(label), s=gstr('as'), u=gval('au');
+  if(u==null||u<0){ toast('⚠ Volume?','bg-red-900 border border-red-500'); return; }
+  fl.additions.push({sub:s, ul:u, ts:now(), note:'manual'});
+  fl.totalVol+=u;
+  logg(fl,'add','Manual: '+u+' µL '+s);
+  toast('✅ '+u+' µL '+s+' added','bg-emerald-900 border border-emerald-500');
+  closeModal();
+}
+
+/* =================== RENDER =================== */
+const VIEWS=[['wizard','🧭 Wizard'],['flasks','🧫 Flasks'],['timeline','📈 Growth'],['media','🗺 Media & map'],['analysis','📊 Effects'],['log','🧾 Log'],['inv','⚙ Inventory']];
+function renderNav(){
+  $('#navTabs').innerHTML=VIEWS.map(([v,l])=>{
+    const on=S.view===v;
+    return '<button onclick="go(\''+v+'\')" class="px-3 py-1.5 rounded-xl font-semibold '+(on?'bg-cyan-500 text-slate-950':'bg-slate-800 text-slate-300 hover:bg-slate-700')+'">'+l+'</button>';
+  }).join('');
+}
+function go(v){ S.view=v; save(); render(); window.scrollTo(0,0); }
+function selectFlask(lab){ S.selLab=lab; save(); render(); }
+
+const BCOLORS={1:'#10b981',2:'#0ea5e9',3:'#8b5cf6',4:'#f43f5e'};
+function stBadge(st){ return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold '+ST[st].badge+'">'+ST[st].txt+'</span>'; }
+
+function flaskSVG(fl,w){
+  const st=status(fl);
+  const T=fl.startTotal>0? fl.startTotal : (S.settings.baseUl + 1100);
+  const lvl=fl.step==='prep'?0:Math.max(0.04,Math.min(1,fl.totalVol/T));
+  const cid='fc'+(uidc++); const bid='bg'+(uidc++);
+  const y=76-lvl*42;
+  const bc=BCOLORS[fl.batch]||'#64748b';
+  const liq=fl.step==='prep'?'#1e293b':ST[st].liq;
+  const tip = fl.step==='prep' ? 'empty · batch '+fl.batch : (fl.totalVol/1000).toFixed(2)+' mL';
+  return '<svg viewBox="0 0 64 100" width="'+w+'" style="max-width:100%">'+
+   '<defs><clipPath id="'+cid+'"><path d="M27 12 L37 12 L37 30 L50 70 Q53 80 43 80 L21 80 Q11 80 14 70 L27 30 Z"/></clipPath>'+
+   '<linearGradient id="'+bid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+liq+'" stop-opacity="0.95"/><stop offset="1" stop-color="'+liq+'" stop-opacity="0.55"/></linearGradient></defs>'+
+   '<rect x="25" y="4" width="14" height="11" rx="2" fill="#94a3b8"/>'+
+   '<path d="M25 6 L39 6 L39 9 L25 9 Z" fill="#cbd5e1"/>'+
+   '<g clip-path="url(#'+cid+')">'+
+     '<rect x="8" y="'+y.toFixed(1)+'" width="48" height="90" fill="url(#'+bid+')"/>'+
+     (lvl>0.1&&lvl<0.98?'<ellipse cx="32" cy="'+(y+1).toFixed(1)+'" rx="17" ry="2.2" fill="#fff" opacity="0.25"/>':'')+
+   '</g>'+
+   '<path d="M27 12 L37 12 L37 30 L50 70 Q53 80 43 80 L21 80 Q11 80 14 70 L27 30 Z" fill="none" stroke="#7dd3fc" stroke-width="1.6" opacity="0.8"/>'+
+   '<line x1="19" y1="72" x2="24" y2="72" stroke="#94a3b8" stroke-width="1"/><text x="17" y="74" font-size="5.5" fill="#94a3b8" text-anchor="end">10</text>'+
+   '<line x1="19.5" y1="62" x2="24" y2="62" stroke="#94a3b8" stroke-width="1" opacity="0.7"/><text x="17" y="64" font-size="5.5" fill="#94a3b8" text-anchor="end" opacity="0.7">8</text>'+
+   '<rect x="22" y="66" width="20" height="9" rx="2" fill="'+bc+'" opacity="0.92"/>'+
+   '<text x="32" y="72.5" font-size="7" font-weight="800" text-anchor="middle" fill="#fff">'+fl.label+'</text>'+
+   '<text x="32" y="90" font-size="7" fill="#94a3b8" text-anchor="middle">run '+fl.run+'</text>'+
+   '<text x="32" y="98" font-size="5.5" fill="#64748b" text-anchor="middle">'+tip+'</text>'+
+  '</svg>';
+}
+let uidc=0;
+
+function liveInfo(fl){
+  const m=M(fl), st=status(fl);
+  if(fl.step==='prep') return '<span class="text-slate-400">batch '+fl.batch+' · '+m.temp+'°C · media per map</span>';
+  if(fl.harvested) return '<span class="text-emerald-400">harvested ✔ '+ (fl.harvestedTs? new Date(fl.harvestedTs).toLocaleString():'') +'</span>';
+  if(fl.step==='induced'){
+    const left=fl.incubEnds-now();
+    return left>0? 'Expressing: <b class="tnum text-violet-300">'+hms(left)+'</b> left ('+fl.incubH+' h @ '+fl.incubTemp+'°C)'
+                 : '<b class="text-orange-400">Harvest now (12,000 rpm / 15 min)</b>';
+  }
+  const lo=lastOd(fl);
+  const t=predictHit(fl);
+  return 'Elapsed <b class="tnum">'+hms(now()-fl.startTs)+'</b> · OD '+(lo?n2(effOd(lo)):'—')+' → target '+m.od+
+    (t&&!isNaN(t)? ' · predicted '+new Date(t).toLocaleTimeString():'');
+}
+
+function quickBtns(fl){
+  const st=status(fl), L='\''+fl.label+'\'';
+  let b='';
+  if(st==='lab')     b+='<button onclick="confPrep('+fl.batch+')" class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-xs font-bold">Prep batch '+fl.batch+'</button>';
+  if(st==='grow'||st==='warn'||st==='over') b+='<button onclick="openFor('+L+',\'od\')" class="px-3 py-1.5 rounded-lg text-xs font-bold '+(st==='over'?'bg-red-600 alertr':'bg-sky-600 hover:bg-sky-500')+'">Log OD</button>';
+  if(st==='indc')    b+='<button onclick="openFor('+L+',\'induce\')" class="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-xs font-bold alertg">✔ IPTG '+n2(iptgUlFor(fl))+' µL</button>';
+  if(st==='harv')    b+='<button onclick="openFor('+L+',\'harvest\')" class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-xs font-bold alertr">Centrifuged ✔</button>';
+  if(fl.step!=='prep'&&!fl.harvested) b+='<button onclick="openFor('+L+',\'add\')" class="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs">+</button>';
+  b+='<button onclick="selectFlask(\''+fl.label+'\');go(\'timeline\')" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs">📈</button>';
+  return b;
+}
+
+/* ---------- WIZARD ---------- */
+function renderWizard(){
+  const started=anyStarted();
+  const alertHtml = stripHtml();
+
+  let s='<div class="space-y-4 fadein">';
+  s+='<div id="alertStrip">'+alertHtml+'</div>';
+
+  // STEP 1: flask<->run assignment (YOU decide, system guides)
+  s+='<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">'+
+     '<div class="flex items-center justify-between flex-wrap gap-2">'+
+       '<h2 class="font-bold flex items-center gap-2"><span class="stepnum">1</span> Flask ↔ run assignment <span class="text-xs text-slate-400 font-normal">you pick randomly, type it in — pipetting order: batches A–C, D–F… </span></h2>'+
+       '<button onclick="if(confirm(\'Shuffle for me?\')){randomizeNow();}" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs">🎲 shuffle for me (optional)</button>'+
+     '</div>'+
+     '<p class="text-xs text-slate-400 mt-1">Each flask will show the exact recipe after you assign its run. Swap happens automatically if the run is taken by another flask (bijection kept). Once a flask is prepared, its assignment locks.</p>'+
+     '<div class="overflow-x-auto mt-3"><table class="text-xs"><tr class="text-slate-400 text-left">'+
+       '<th class="px-2 py-1">Flask</th><th class="px-2 py-1">Run (you set)</th><th class="px-2 py-1">Group</th><th class="px-2 py-1">Temp</th><th class="px-2 py-1">IPTG mM</th><th class="px-2 py-1">OD tar.</th><th class="px-2 py-1">Media</th><th class="px-2 py-1">State</th></tr>'+
+       S.flasks.map(fl=>{ const m=M(fl); const locked=fl.step!=='prep';
+         return '<tr class="border-t border-slate-800"><td class="px-2 py-1"><span class="inline-block px-1.5 py-0.5 rounded font-bold" style="background:'+(BCOLORS[fl.batch]||'#0f172a')+'">'+fl.label+'</span></td>'+
+         '<td class="px-2 py-1"><select '+(locked?'disabled':'')+' onchange="assignRun(\''+fl.label+'\',this.value)" class="bg-slate-800 border '+(locked?'border-slate-700 text-slate-500':'border-cyan-700 font-bold text-cyan-300')+' rounded-lg px-2 py-1">'+
+           Array.from({length:12},(_,i)=>'<option value="'+(i+1)+'" '+(fl.run===i+1?'selected':'')+'>run '+(i+1)+'</option>').join('')+
+         '</select></td><td class="px-2 py-1">'+fl.batch+'</td>'+
+         '<td class="px-2 py-1 '+((m.temp>=30)?'text-red-300':'text-blue-300')+'">'+m.temp+'°C</td><td class="px-2 py-1">'+m.iptg+'</td><td class="px-2 py-1">'+m.od+'</td>'+
+         '<td class="px-2 py-1 text-slate-400">'+m.gly+'% gly · '+m.phos+' mM P · '+m.ye+' g/L YE · '+m.mg+' mM Mg</td>'+
+         '<td class="px-2 py-1">'+stBadge(status(fl))+'</td></tr>'; }).join('')+
+     '</table></div></div>';
+
+  // STEP 2: batches to prep
+  const preps=S.flasks.filter(x=>x.step==='prep');
+  if(preps.length){
+    s+='<h2 class="font-bold flex items-center gap-2 mt-2"><span class="stepnum">2</span> Media + inoculation (pipette per batch)</h2>';
+    s+='<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">';
+    for(let b=1;b<=S.settings.nBatches;b++){
+      const fls=S.flasks.filter(x=>x.batch===b);
+      const todo=fls.filter(x=>x.step==='prep').length;
+      s+='<div class="rounded-2xl border p-3 '+(todo?'border-slate-700 bg-slate-900/80':'border-slate-800 bg-slate-900/40 opacity-60')+'" style="'+(todo?'border-top:3px solid '+(BCOLORS[b]||'#334155')+'':'')+'>'+
+        '<div class="font-bold text-sm mb-2">Batch '+b+' <span class="text-xs text-slate-400">'+(todo? fls.length+' to prep':'✓ done')+'</span></div>'+
+        '<table class="w-full text-[11px] tnum">'+fls.map(fl=>{ const r=recipe(fl);
+          return '<tr class="border-t border-slate-800"><td class="py-1 pr-1"><span class="inline-block px-1 rounded font-bold" style="background:'+(BCOLORS[b]||'#0f172a')+'">'+fl.label+'</span></td>'+
+          '<td class="py-1 text-slate-300">base <b>'+Math.round(r.base)+'</b>, Gly '+Math.round(r.Gly)+', P '+Math.round(r.Phos)+', YE '+Math.round(r.YE)+', Mg '+Math.round(r.Mg)+', Amp '+Math.round(r.Amp)+' µL</td></tr>'; }).join('')+'</table>'+
+        (todo? '<button onclick="confPrep('+b+')" class="mt-2 w-full px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-extrabold">✔ Prep batch '+b+' + inoculate ('+S.settings.inocUl+' µL each)</button>':'')+
+      '</div>';
+    }
+    s+='</div>';
+  }
+
+  // STEP 3: growth monitor
+  const growing=S.flasks.filter(x=>x.step==='growth');
+  if(growing.length){
+    s+='<h2 class="font-bold flex items-center gap-2 mt-4"><span class="stepnum">3</span> Growth monitor (measure when highlighted)</h2>';
+    s+='<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">'+
+    growing.map(fl=>{ const st=status(fl); const m=M(fl); const t=predictHit(fl);
+      const hot=st==='warn'||st==='over'||st==='indc';
+      return '<div class="rounded-2xl border p-3 flex items-center gap-3 '+(st==='over'?'border-red-500 alertr':hot?'border-yellow-500 bg-yellow-950/20':'border-slate-700 bg-slate-900/80')+'">'+
+        flaskSVG(fl,54)+
+        '<div class="flex-1 min-w-0 text-xs">'+
+          '<div class="flex justify-between"><b class="text-sm">Flask '+fl.label+'</b>'+stBadge(st)+'</div>'+
+          '<div class="text-slate-400">'+m.temp+'°C · target OD '+m.od+' · inducible ~'+m.expH+' h</div>'+
+          '<div class="tnum mt-0.5" data-live="'+fl.label+'">'+liveInfo(fl)+'</div>'+
+          '<div class="mt-1.5 flex flex-wrap gap-1.5">'+quickBtns(fl)+'</div>'+
+        '</div></div>'; }).join('')+'</div>';
+  }
+
+  // STEP 4: induction queue
+  const ready=S.flasks.filter(x=>x.step==='growth'&&ozdReached(x));
+  if(ready.length){
+    s+='<h2 class="font-bold flex items-center gap-2 mt-4"><span class="stepnum">4</span> Induction queue (OD reached)</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-3">'+
+    ready.map(fl=>{ const m=M(fl); return '<div class="rounded-2xl border-2 border-green-500 bg-green-950/20 p-3 alertg text-xs">'+
+      '<b class="text-sm">Flask '+fl.label+'</b> (run '+fl.run+') — add <b class="text-green-300 text-base tnum">'+n2(iptgUlFor(fl))+' µL</b> IPTG → '+postIndH(m.temp)+' h @ '+m.temp+'°C'+
+      '<div class="mt-2"><button onclick="openFor(\''+fl.label+'\',\'induce\')" class="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 font-bold text-xs">✔ Induce now</button></div></div>'; }).join('')+'</div>';
+  }
+
+  // STEP 5: expression + harvest queue
+  const expr=S.flasks.filter(x=>x.step==='induced');
+  if(expr.length){
+    s+='<h2 class="font-bold flex items-center gap-2 mt-4"><span class="stepnum">5</span> Expression & harvest</h2><div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">'+
+    expr.map(fl=>{ const st=status(fl); const done=fl.incubEnds<=now();
+      return '<div class="rounded-2xl border-2 p-3 text-xs '+(done?'border-orange-500 bg-orange-950/20 alertr':'border-violet-700 bg-slate-900/80')+'">'+
+      '<div class="flex justify-between items-center"><b class="text-sm">Flask '+fl.label+'</b>'+stBadge(st)+'</div>'+
+      '<div class="text-slate-300">'+(fl.incubH)+' h @ '+fl.incubTemp+'°C · IPTG '+fl.iptgUl+' µL ('+n2(iptgMmNow(fl))+' mM)</div>'+
+      '<div class="tnum mt-0.5">'+liveInfo(fl)+'</div>'+
+      '<div class="mt-1.5 flex gap-1.5 flex-wrap">'+quickBtns(fl)+'</div></div>'; }).join('')+'</div>';
+  }
+
+  // done summary
+  const harvest=S.flasks.filter(x=>x.harvested).length;
+  if(started) s+='<div class="text-center text-xs text-slate-500">'+harvest+'/12 harvested · '+S.flasks.filter(x=>x.step==='growth').length+' growing · '+S.flasks.filter(x=>x.step==='induced').length+' expressing</div>';
+  s+='</div>';
+  $('#view').innerHTML=s;
+}
+
+let lastAlertKey='';
+function stripKey(){ return alerts().map(a=>a.id+a.lvl).join(','); }
+function stripHtml(){ const al=alerts();
+  if(!al.length) return '';
+  const w={crit:0,warn:1,info:2};
+  return '<div class="mb-4 flex flex-wrap gap-2">'+al.sort((x,y)=>w[x.lvl]-w[y.lvl]).map(a=>alertPill(a)).join('')+'</div>'; }
+function alertPill(a){
+  const cls={crit:'bg-red-950/80 border-red-500 text-red-200', warn:'bg-yellow-950/70 border-yellow-600 text-yellow-200', info:'bg-slate-800 border-slate-600 text-slate-300'}[a.lvl];
+  const runl=a.fl? ('<b>'+a.fl.label+'</b>·r'+a.fl.run):'';
+  return '<div class="flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] '+cls+'">'+runl+' '+a.text+
+    '<button onclick="dismissAlert(\''+a.id+'\',event)" class="ml-1 text-slate-400 hover:text-white" title="dismiss">✕</button></div>';
+}
+function alertsort(al){ const w={crit:0,warn:1,info:2}; return al.slice().sort((x,y)=>w[x.lvl]-w[y.lvl]); }
+function dismissAlert(id,ev){ ev.stopPropagation(); S.dismissed[id]=true; save(); render(); }
+
+/* ---------- FLASKS VIEW ---------- */
+function renderFlasks(){
+  let s='<div class="fadein"><div id="alertStrip">'+stripHtml()+'</div>';
+  s+='<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-3">'+
+  S.flasks.map(fl=>{
+    const st=status(fl), m=M(fl);
+    const bd=st==='over'?'border-red-500 alertr':(st==='harv'||st==='indc')?'border-green-500 alertg':st==='warn'?'border-yellow-500':'border-slate-700';
+    return '<div class="rounded-2xl border-2 '+bd+' bg-slate-900/80 p-3 flex flex-col gap-2">'+
+      '<div class="flex items-center justify-between"><div class="text font-bold"><span class="inline-block px-1.5 rounded" style="background:'+(BCOLORS[fl.batch]||'#0f172a')+'">'+fl.label+'</span> <span class="text-xs text-slate-400 font-normal">run '+fl.run+'</span></div>'+stBadge(st)+'</div>'+
+      '<div class="flex justify-center">'+flaskSVG(fl,72)+'</div>'+
+      '<div class="text-[11px] text-slate-400 leading-tight">'+m.gly+'% gly · '+m.phos+' mM P · '+m.ye+' YE · '+m.mg+' Mg · '+m.iptg+' mM IPTG · <b class="'+(m.temp>=30?'text-red-300':'text-blue-300')+'">'+m.temp+'°C</b></div>'+
+      '<div class="text-[11px] tnum">vol <b>'+fl.totalVol.toFixed(0)+'</b> µL'+(fl.step!=='prep'?' · IPTG '+n2(iptgMmNow(fl))+' mM · Mg '+n2(concOf(fl,'Mg'))+' mM':'')+'</div>'+
+      '<div class="text-[11px]" data-live="'+fl.label+'">'+liveInfo(fl)+'</div>'+
+      '<div class="flex flex-wrap gap-1.5">'+quickBtns(fl)+'</div>'+
+    '</div>'; }).join('')+'</div></div>';
+  $('#view').innerHTML=s;
+}
+
+/* ---------- TIMELINE / GROWTH VIEW ---------- */
+let odChart=null, fxChart=null;
+function renderTimeline(){
+  const lab=S.selLab||S.flasks[0].label;
+  const fl=fL(lab); const m=M(fl); const st=status(fl);
+  const chips='<div class="flex flex-wrap gap-1.5 mb-4">'+S.flasks.map(x=>'<button onclick="S.selLab=\''+x.label+'\';save();render()" class="px-2.5 py-1 rounded-lg text-xs font-bold '+(x.label===lab?'bg-cyan-500 text-slate-950':'bg-slate-800 border border-slate-600 hover:bg-slate-700')+'">'+x.label+'</button>').join('')+'</div>';
+  const odRows=fl.ods.slice().reverse().map(o=>{
+    return '<tr class="border-t border-slate-800"><td class="px-2 py-1 tnum">'+n2((o.ts-fl.startTs)/3.6e6)+' h</td>'+
+    '<td class="px-2 py-1 tnum">'+o.od+(o.dil>1?' ×'+o.dil+' = '+n2(effOd(o)):'')+'</td><td class="px-2 py-1 tnum">'+o.volUl+' µL</td>'+
+    '<td class="px-2 py-1 tnum">'+new Date(o.ts).toLocaleTimeString()+'</td></tr>'; }).join('');
+  const logRows=fl.log.slice().reverse().map(e=>'<li class="text-[11px] border-l-2 border-cyan-700 pl-2 py-0.5"><span class="text-slate-500 tnum">'+new Date(e.ts).toLocaleString()+'</span> — '+esc(e.text)+'</li>').join('');
+  $('#view').innerHTML='<div class="fadein">'+chips+
+   '<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">'+
+    '<div class="lg:col-span-2 space-y-4">'+
+      '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">'+
+        '<div class="flex items-center justify-between flex-wrap gap-2 mb-2"><h2 class="font-bold">📈 Flask '+lab+' — OD600 growth & prediction</h2>'+stBadge(st)+'</div>'+
+        '<div class="h-72"><canvas id="odChart"></canvas></div>'+
+        '<div class="text-[11px] text-slate-400 mt-2">Cyan = measured · dashed green = design target('+m.od+') · red = reader linear limit ('+S.settings.readerMaxOd+') · grey dashed = model prediction (μ='+n2(growRate(fl))+'/h) — measure stops once target is reached.</div>'+
+      '</div>'+
+      '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">'+
+        '<h3 class="font-bold mb-2 text-sm">OD log</h3>'+
+        '<table class="w-full text-xs"><tr class="text-slate-400 text-left"><th class="px-2 py-1">t (h)</th><th class="px-2 py-1">OD600</th><th class="px-2 py-1">sample</th><th class="px-2 py-1">clock</th></tr>'+
+        (odRows||'<tr><td colspan="4" class="text-slate-500 py-1">No measurements yet.</td></tr>')+'</table></div>'+
+    '</div>'+
+    '<div class="space-y-4">'+
+      '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 flex gap-3">'+flaskSVG(fl,96)+'<div class="text-xs space-y-2 flex-1">'+
+        '<div class="text font-bold text-base" data-live="'+fl.label+'">'+liveInfo(fl)+'</div>'+
+        '<div class="text-slate-400">Temp '+m.temp+'°C · volume '+fl.totalVol.toFixed(0)+' µL · target OD '+m.od+' · inducible ~'+m.expH+' h</div>'+
+        '<div class="flex flex-wrap gap-1.5">'+quickBtns(fl)+'</div>'+
+      '</div></div>'+
+      '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">'+
+        '<h3 class="font-bold mb-2 text-sm">Audit trail</h3><ul class="space-y-1 max-h-72 overflow-y-auto">'+(logRows||'<li class="text-xs text-slate-500">Empty.</li>')+'</ul></div>'+
+    '</div>'+
+   '</div></div>';
+  drawOd(fl,m);
+}
+function drawOd(fl,m){
+  if(typeof Chart==='undefined') return;
+  const el=$('#odChart'); if(!el) return;
+  if(odChart){ odChart.destroy(); odChart=null; }
+  const pts=fl.ods.map(o=>({x:((o.ts-fl.startTs)/3.6e6), y:effOd(o)}));
+  const mu=growRate(fl);
+  let pred=[];
+  if(pts.length){
+    const p0=pts[0], tEnd=(now()-fl.startTs)/3.6e6+2;
+    const targetT = p0.x + Math.log(m.od/p0.y)/mu;
+    const tMax=Math.max(tEnd, targetT+1);
+    for(let t=p0.x; t<=tMax; t+=Math.max(0.1,(tMax-p0.x)/40)) pred.push({x:t, y:Math.min(p0.y*Math.exp(mu*(t-p0.x)), m.od*1.15)});
+  }
+  odChart=new Chart(el,{data:{datasets:[
+      {type:'line',label:'measured OD',data:pts,showLine:true,borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.2)',pointRadius:5,tension:.25,fill:true},
+      {type:'line',label:'prediction',data:pred,borderColor:'#94a3b8',borderDash:[5,5],pointRadius:0,fill:false},
+      {type:'line',label:'target '+m.od,data:[{x:0,y:m.od},{x:m.expH+4,y:m.od}],borderColor:'#4ade80',borderDash:[8,6],pointRadius:0},
+      {type:'line',label:'reader limit',data:[{x:0,y:S.settings.readerMaxOd},{x:m.expH+4,y:S.settings.readerMaxOd}],borderColor:'#ef4444',borderDash:[2,5],pointRadius:0},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      scales:{x:{type:'linear',title:{display:true,text:'hours since inoculation',color:'#94a3b8'},ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},
+              y:{beginAtZero:true,suggestedMax:1.5,ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},
+      plugins:{legend:{labels:{color:'#cbd5e1',boxWidth:12}}}}});
+}
+
+/* ---------- MEDIA & MASTER MIX PLAN ---------- */
+function renderMedia(){
+  const groups=mediaGroups();
+  const gHtml=groups.map((g,i)=>{
+    const one=g.flasks[0], r=recipe(one);
+    const n=g.flasks.length;
+    const per = {Gly:Math.round(r.Gly),Phos:Math.round(r.Phos),YE:Math.round(r.YE),Mg:Math.round(r.Mg),Water:Math.round(r.Water),Amp:Math.round(r.Amp),base:Math.round(r.base)};
+    const tot={}; for(const k in per) tot[k]=per[k]*n;
+    return '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">'+
+      '<div class="font-bold mb-1">Media type '+(i+1)+' — '+n+' flask'+(n>1?'s':'')+' ('+g.flasks.map(x=>x.label).join(', ')+')</div>'+
+      '<div class="text-xs text-slate-400 mb-2">'+g.gly+'% glycerol · '+g.phos+' mM phosphate · '+g.ye+' g/L yeast extract · '+g.mg+' mM MgSO4</div>'+
+      '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">'+
+        '<div class="rounded-xl bg-slate-800/70 border border-slate-700 p-2"><b>Per flask:</b> base '+per.base+' + Gly '+per.Gly+' + P '+per.Phos+' + YE '+per.YE+' + Mg '+per.Mg+' + <span class="text-sky-300">water '+per.Water+'</span> + Amp '+per.Amp+' µL → +'+r.inoc+' µL cells = <b>'+r.finalVol+' µL</b></div>'+
+        '<div class="rounded-xl bg-slate-800/70 border border-slate-700 p-2"><b>Master mix for '+n+':</b> base '+tot.base+' + Gly '+tot.Gly+' + P '+tot.Phos+' + YE '+tot.YE+' + Mg '+tot.Mg+' + <span class="text-sky-300">water '+tot.Water+'</span> + Amp '+tot.Amp+' µL — dispense '+(r.finalVol-r.inoc)+' µL per flask, then '+r.inoc+' µL cells each</div>'+
+      '</div></div>';
+  }).join('');
+  $('#view').innerHTML='<div class="space-y-4 fadein"><h2 class="font-bold text-lg">🗺 Media plan, master mixes & flask map</h2>'+
+    '<p class="text-xs text-slate-400">10 mL base media first, supplements on top, sterile water equalizes every flask to the same final volume. Pipetting order (batches A–C, D–F…) is your own random choice, typed in step 1 of the Wizard.</p>'+gHtml+
+    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">Flask ↔ run map (set by you'+ (S.randomizedAt?', shuffled '+new Date(S.randomizedAt).toLocaleString():'') +')</h3>'+
+    '<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">'+
+    S.flasks.map(fl=>'<div class="rounded-xl border border-slate-700 p-2"><b>'+fl.label+'</b> = run '+fl.run+' · group '+fl.batch+' · '+M(fl).temp+'°C</div>').join('')+
+    '</div></div></div>';
+}
+
+/* ---------- EFFECTS / ANALYSIS ---------- */
+function renderAnalysis(){
+  const inp=S.flasks.map(fl=>{ const m=M(fl);
+    return '<tr class="border-t border-slate-800"><td class="px-2 py-1 font-bold">'+fl.label+'</td><td class="px-2 py-1 text-slate-400">run '+fl.run+' · '+m.gly+'%/'+m.phos+'mM/'+m.iptg+'mM/'+m.temp+'°C/'+m.expH+'h/OD'+m.od+'/'+m.mg+'Mg/'+m.ye+'YE</td>'+
+    '<td class="px-2 py-1">'+stBadge(status(fl))+'</td>'+
+    '<td class="px-2 py-1"><input class="resa w-28 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 tnum" data-run="'+fl.run+'" type="number" step="any" value="'+(fl.response??'')+'" placeholder="score / mg/L" onchange="setResp('+fl.run+',this)"></td></tr>'; }).join('');
+  const n=S.flasks.filter(x=>x.response!=null&&x.response!=='').length;
+  const rows=[];
+  FACTORS.forEach(fc=>{
+    const hi=[],lo=[];
+    S.flasks.forEach(fl=>{ const v=fl.response; if(v==''||v==null) return; const num=parseFloat(v); if(isNaN(num)) return;
+      const m=DESIGN[fl.run-1]; (m[fc.key]===fc.hi?hi:lo).push(num); });
+    if(hi.length&&lo.length){ const e=hi.reduce((a,b)=>a+b,0)/hi.length - lo.reduce((a,b)=>a+b,0)/lo.length;
+      rows.push({label:fc.label+' ('+fc.hi+' vs '+fc.lo+' '+fc.unit+')', e, n:hi.length+lo.length}); }
+  });
+  rows.sort((a,b)=>Math.abs(b.e)-Math.abs(a.e));
+  $('#view').innerHTML='<div class="max-w-5xl mx-auto space-y-4 fadein">'+
+    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h2 class="font-bold mb-1">📊 Which factors matter? (PB12 effects)</h2>'+
+    '<p class="text-xs text-slate-400 mb-2">Enter one response per finished flask (expression score 0–100 or measured yield). Effect = mean(high level) − mean(low level). '+n+'/12 responses entered. Conclusions are solid only when all 12 runs have data.</p>'+
+    (rows.length? '<table class="w-full text-xs tnum"><tr class="text-left text-slate-400"><th class="px-2 py-1">Factor</th><th class="px-2 py-1">Effect</th><th class="px-2 py-1">runs</th></tr>'+
+      rows.map(r=>'<tr class="border-t border-slate-800"><td class="px-2 py-1">'+r.label+'</td><td class="px-2 py-1"><b class="'+(r.e>0?'text-green-400':'text-red-400')+'">'+(r.e>=0?'+':'')+n2(r.e)+'</b></td><td class="px-2 py-1 text-slate-400">'+r.n+'</td></tr>').join('')+'</table>'
+      : '<p class="text-xs text-slate-500">Waiting for responses…</p>')+
+    '<div class="h-64 mt-3"><canvas id="fxChart"></canvas></div></div>'+
+    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">Responses</h3><table class="w-full text-xs"><tr class="text-left text-slate-400"><th class="px-2 py-1">Flask</th><th class="px-2 py-1">Design</th><th class="px-2 py-1">Status</th><th class="px-2 py-1">Response</th></tr>'+inp+'</table></div></div>';
+  const el=$('#fxChart');
+  if(el&&typeof Chart!=='undefined'&&rows.length){
+    if(fxChart){fxChart.destroy();fxChart=null;}
+    fxChart=new Chart(el,{type:'bar',data:{labels:rows.map(r=>r.label),datasets:[{data:rows.map(r=>+n2(r.e)),backgroundColor:rows.map(r=>r.e>0?'rgba(74,222,128,.8)':'rgba(239,68,68,.8)')}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},title:{display:true,text:'Estimated factor effects',color:'#cbd5e1'}},
+        scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b'}}}}});
+  }
+}
+function setResp(run,el){ fR(run).response=el.value===''?null:parseFloat(el.value); save(); renderAnalysisPartial(); }
+function renderAnalysisPartial(){ // keep inputs stable: update count/results only on demand (loss of focus acceptable)
+  // simple: rerender whole view after change (focus already lost via onchange)
+  renderAnalysis();
+}
+
+/* ---------- LOG ---------- */
+function renderLog(){
+  const rows=S.globalLog.slice().reverse().map(e=>{ const c={prep:'bg-cyan-700',od:'bg-sky-700',add:'bg-cyan-700',induce:'bg-green-700',harvest:'bg-orange-700',setup:'bg-violet-700'}[e.type]||'bg-slate-700';
+    return '<tr class="border-t border-slate-800"><td class="px-2 py-1 text-slate-400 tnum text-[11px]">'+new Date(e.ts).toLocaleString()+'</td>'+
+    '<td class="px-2 py-1">'+(e.label?'<b>'+e.label+'</b>': '—')+'</td><td class="px-2 py-1 text-slate-400">'+(e.run?'r'+e.run:'')+'</td>'+
+    '<td class="px-2 py-1"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold '+c+'">'+e.type+'</span></td>'+
+    '<td class="px-2 py-1 text-xs">'+esc(e.text)+'</td></tr>'; }).join('');
+  $('#view').innerHTML='<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 fadein max-h-[78vh] overflow-y-auto">'+
+    '<h2 class="font-bold mb-2">🧾 Audit log ('+S.globalLog.length+')</h2>'+
+    '<table class="w-full text-xs"><tr class="text-left text-slate-400"><th class="px-2 py-1">Time</th><th class="px-2 py-1">Flask</th><th class="px-2 py-1">Run</th><th class="px-2 py-1">Type</th><th class="px-2 py-1">Action</th></tr>'+
+    (rows||'<tr><td colspan="5" class="text-slate-500">Empty.</td></tr>')+'</table></div>';
+}
+
+/* ---------- INVENTORY / SETTINGS ---------- */
+function renderInv(){
+  const st=S.settings;
+  $('#view').innerHTML='<div class="max-w-3xl mx-auto space-y-4 fadein">'+
+    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 space-y-3">'+
+      '<h2 class="font-bold">⚙ Stock inventory — system uses these to compute every µL</h2>'+
+      '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">'+
+      Object.keys(SUBSTANCES).map(k=>'<label class="block rounded-xl bg-slate-800/60 border border-slate-700 p-3">'+SUBSTANCES[k].name+' <span class="text-slate-400 text-xs">('+SUBSTANCES[k].hint+')</span>'+
+        '<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 tnum" data-stk="'+k+'" type="number" value="'+(S.stocks[k]?S.stocks[k].c:SUBSTANCES[k].def)+'"> <span class="text-xs text-slate-400">'+SUBSTANCES[k].unit+'</span></label>').join('')+
+      '</div>'+
+      '<h3 class="font-bold pt-2">Protocol numbers</h3>'+
+      '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">'+
+        '<label>Base media per flask (µL)<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 tnum" data-set="baseUl" type="number" value="'+st.baseUl+'"></label>'+
+        '<label>Inoculum (µL)<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 tnum" data-set="inocUl" type="number" value="'+st.inocUl+'"></label>'+
+        '<label>OD sample (µL)<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 tnum" data-set="odSampleUl" type="number" value="'+st.odSampleUl+'"></label>'+
+        '<label>Amp per flask (µL)<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 tnum" data-set="ampUl" type="number" value="'+st.ampUl+'"></label>'+
+        '<label>Reader linear limit<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 tnum" data-set="readerMaxOd" type="number" step="any" value="'+st.readerMaxOd+'"></label>'+
+'<label class="flex items-center gap-2 pt-6">Water top-up <input class="inv-in w-5 h-5" data-set="equalizeWater" type="checkbox" '+(st.equalizeWater?'checked':'')+'></label>'+
+        '<label>Post-IPTG h @37°C<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 tnum" data-set="pi37" type="number" value="'+postIndH(37)+'"></label>'+
+        '<label>Post-IPTG h @20°C<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 tnum" data-set="pi20" type="number" value="'+postIndH(20)+'"></label>'+
+      '</div>'+
+      '<button onclick="saveInv()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold">💾 Save inventory</button>'+
+    '</div>'+
+    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 space-y-2">'+
+      '<h3 class="font-bold">Data safety</h3>'+
+      '<div class="flex flex-wrap gap-2">'+
+        '<button onclick="exportJson()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600 hover:bg-slate-700 text-sm">⬇ Export JSON</button>'+
+        '<label class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600 hover:bg-slate-700 text-sm curzor-pointer">⬆ Import JSON<input type="file" accept=".json" class="hidden" onchange="importJson(this)"></label>'+
+        '<button onclick="resetAll()" class="px-4 py-2 rounded-xl bg-red-900 border border-red-600 hover:bg-red-800 text-sm">🗑 Reset everything</button>'+
+      '</div>'+
+      '<p class="text-xs text-slate-400">All progress autosaves to browser localStorage after every action. Export before clearing browser data or switching computers.</p>'+
+    '</div></div>';
+}
+function saveInv(){
+  document.querySelectorAll('.inv-in').forEach(el=>{
+    const stk=el.getAttribute('data-stk'); const k=el.getAttribute('data-set');
+    if(k==='equalizeWater'){ S.settings.equalizeWater=el.checked; return; }
+    const v=parseFloat(el.value); if(isNaN(v)) return;
+    if(stk) S.stocks[stk].c=v;
+    else if(k==='pi37') S.settings.postInd[37]=v;
+    else if(k==='pi20') S.settings.postInd[20]=v;
+    else S.settings[k]=v;
+  });
+  save(); toast('💾 Inventory saved — all volumes recomputed','bg-emerald-900 border border-emerald-500');
+  render();
+}
+function exportJson(){ const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='ventlab-os-backup.json'; a.click(); toast('⬇ Backup exported'); }
+function importJson(inp){ const f=inp.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.flasks||s.version!==2) throw 0; S=s; mkFlasks(); save(); toast('✅ Imported'); render(); }
+    catch(e){ toast('⚠️ Invalid file','bg-red-900 border border-red-500'); } }; r.readAsText(f); }
+function resetAll(){ if(confirm('Delete ALL progress, logs and settings?')&&confirm('Really? Export a backup first!')){ localStorage.removeItem(LS); S=defaultState(); initFlasks(shuffle(DESIGN.map(d=>d.run))); save(); render(); toast('🔄 Fresh randomized system'); } }
+
+/* ---------- TOP BAR / TICK ---------- */
+function updateTop(){
+  const es=S.flasks.filter(x=>x.startTs); const t0=es.length?Math.min(...es.map(x=>x.startTs)):null;
+  $('#gElapsed').innerHTML=t0?hms(now()-t0):'—';
+  const q=nextActions(); const e=nextEventTs();
+  let txt='all clear 🎉', in_='';
+  if(q.length){ const a=q[0]; const names={prep:'prep batch '+a.batch, od:'measure OD', induce:'add IPTG', harvest:'harvest'};
+    txt='Flask '+a.fl.label+' — '+names[a.act]; }
+  else if(e){ txt=e.txt+' at '+new Date(e.t).toLocaleTimeString(); in_='(in '+hms(e.t-now())+')'; }
+  $('#nextTxt').textContent=txt; $('#nextIn').textContent=in_;
+}
+let lastST=null;
+function tick(){
+  updateTop();
+  if(modalOpen) return;
+  const ae=document.activeElement;
+  if(ae&&(ae.tagName==='INPUT'||ae.tagName==='SELECT')) return;
+  // 1) refresh only the dynamic numbers — no full re-render, no flicker
+  document.querySelectorAll('[data-live]').forEach(el=>{
+    const fl=fL(el.getAttribute('data-live')); if(fl) el.innerHTML=liveInfo(fl);
+  });
+  // 2) alert strip: rebuild only if the alert set actually changed
+  const strip=$('#alertStrip');
+  if(strip){ const key=stripKey();
+    if(key!==lastAlertKey){ strip.innerHTML=stripHtml(); lastAlertKey=key; } }
+  // 3) structure change (status transitions) => re-render once
+  let dirty=false;
+  S.flasks.forEach(fl=>{ const st=status(fl); if(lastST[fl.label]!==st) dirty=true; });
+  if(dirty) render();
+}
+function destroy(){ if(odChart){odChart.destroy();odChart=null;} if(fxChart){fxChart.destroy();fxChart=null;} }
+function render(){
+  destroy();
+  lastST={}; S.flasks.forEach(fl=>lastST[fl.label]=status(fl));
+  renderNav();
+  if(S.view==='wizard') renderWizard();
+  else if(S.view==='flasks') renderFlasks();
+  else if(S.view==='timeline') renderTimeline();
+  else if(S.view==='media') renderMedia();
+  else if(S.view==='analysis') renderAnalysis();
+  else if(S.view==='log') renderLog();
+  else if(S.view==='inv') renderInv();
+  updateTop();
+}
+
+/* ---------- INIT ---------- */
+lastST={}; S.flasks.forEach(fl=>lastST[fl.label]=status(fl)); lastAlertKey=stripKey();
+render();
+setInterval(tick,1000);
+console.log('VentLab OS ready.');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VentLab OS — PB12 yo'naltirilgan skrining (Trial 2)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+  body{font-family:'Inter',ui-sans-serif,system-ui,-apple-system,sans-serif}
+  body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:radial-gradient(60rem 30rem at 85% -10%,rgba(56,189,248,.12),transparent),
+               radial-gradient(50rem 28rem at -10% 110%,rgba(139,92,246,.12),transparent)}
+  .fcard{transition:transform .18s ease,box-shadow .18s ease}
+  .fcard:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(2,8,23,.6)}
+  .lbtn{transition:transform .12s ease,filter .15s ease}
+  .lbtn:hover{transform:scale(1.04)}
+  .lbtn:active{transform:scale(.97)}
+  @keyframes bubrise{0%{transform:translateY(0);opacity:0}15%{opacity:.6}100%{transform:translateY(-16px);opacity:0}}
+  .bub{animation:bubrise 2.6s infinite}
+  .bub.b2{animation-delay:.9s} .bub.b3{animation-delay:1.7s}
+  @keyframes wave{0%,100%{transform:translateX(0);transform-origin:center}50%{transform:translateX(1.5px)}}
+  .liq{animation:wave 3.2s ease-in-out infinite}
+  body.night{background:#020409}
+  body.night header{background:rgba(2,4,9,.92)}
+  body.neon::before{background:radial-gradient(60rem 30rem at 80% -10%,rgba(74,222,128,.14),transparent),radial-gradient(50rem 28rem at -10% 110%,rgba(236,72,153,.16),transparent)}
+  body.neon .fcard{border-color:rgba(103,232,249,.45)}
+  .confetti{position:fixed;top:-12px;z-index:80;pointer-events:none;animation:fall 2.3s ease-in forwards}
+  @keyframes fall{to{transform:translateY(105vh) rotate(420deg);opacity:.2}}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:#0b1220}
+  ::-webkit-scrollbar-thumb{background:#2c3a52;border-radius:5px}
+  .tnum{font-variant-numeric:tabular-nums}
+  @keyframes pr{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.6)}50%{box-shadow:0 0 0 12px rgba(239,68,68,0)}}
+  .alertr{animation:pr 1.5s infinite}
+  @keyframes pg{0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,.6)}50%{box-shadow:0 0 0 12px rgba(74,222,128,0)}}
+  .alertg{animation:pg 1.5s infinite}
+  @keyframes pb{0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,.5)}50%{box-shadow:0 0 0 10px rgba(56,189,248,0)}}
+  .alertb{animation:pb 1.5s infinite}
+  .fadein{animation:fi .22s ease}
+  @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .stepnum{display:inline-flex;width:22px;height:22px;border-radius:7px;background:#0e7490;color:#fff;font-size:12px;font-weight:800;align-items:center;justify-content:center}
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen" style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif">
+
+<header class="sticky top-0 z-40 border-b border-slate-800 bg-slate-900/90 backdrop-blur">
+  <div class="max-w-[1400px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+    <div class="flex items-center gap-2.5">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-violet-600 flex items-center justify-center text-xl shadow-lg shadow-cyan-900/40">🧫</div>
+      <div>
+        <h1 class="font-extrabold text-lg leading-tight bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent">VentLab OS</h1>
+        <p class="text-[11px] text-slate-400 leading-tight">PB12 · Vent polimeraza · Trial 2</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-xs">
+      <div class="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700"><span id="dnIcon"></span> <span id="gElapsed" class="tnum font-bold text-cyan-300">—</span></div>
+      <button id="nextBtn" onclick="doNext()" class="lbtn px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold shadow-lg shadow-emerald-900/40">NEXT ▶</button>
+    </div>
+    <nav class="ml-auto flex flex-wrap gap-1 text-sm" id="navTabs"></nav>
+    <div class="flex gap-1"><button onclick="toggleTheme()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" id="themeBtn" title="rejim">🎨</button><button onclick="toggleSound()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" id="soundBtn" title="ovoz">🔇</button><button onclick="toggleLang()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs font-bold" id="langBtn">🌐</button></div>
+  </div>
+</header>
+
+<main id="view" class="max-w-[1400px] mx-auto px-4 py-5"></main>
+<div id="modalRoot"></div>
+<div id="toastRoot" class="fixed bottom-4 right-4 z-[70] space-y-2"></div>
+
+<script>
+'use strict';
+/* ================================================
+   VENTLAB OS v3 — soddalashtirilgan, ikki tilli
+   PB12 skrining yo'naltiruvchi tizimi
+   ================================================ */
+const LS='ventlab_os_v3';
+
+/* ---- PB12 dizayn (qo'lyozmalar, Trial 2) ---- */
+const DESIGN=[
+ {run:1, gly:0.8, phos:50, iptg:0.1, temp:37, expH:24, od:1.2, mg:0,  ye:0},
+ {run:2, gly:0.0, phos:50, iptg:1.0, temp:20, expH:24, od:1.2, mg:10, ye:0},
+ {run:3, gly:0.8, phos:0,  iptg:1.0, temp:37, expH:4,  od:1.2, mg:10, ye:10},
+ {run:4, gly:0.0, phos:50, iptg:0.1, temp:37, expH:24, od:0.4, mg:10, ye:10},
+ {run:5, gly:0.0, phos:0,  iptg:1.0, temp:20, expH:24, od:1.2, mg:0,  ye:10},
+ {run:6, gly:0.0, phos:0,  iptg:0.1, temp:37, expH:4,  od:1.2, mg:10, ye:0},
+ {run:7, gly:0.8, phos:0,  iptg:0.1, temp:20, expH:24, od:0.4, mg:10, ye:10},
+ {run:8, gly:0.8, phos:50, iptg:0.1, temp:20, expH:4,  od:1.2, mg:0,  ye:10},
+ {run:9, gly:0.8, phos:50, iptg:1.0, temp:20, expH:4,  od:0.4, mg:10, ye:0},
+ {run:10,gly:0.0, phos:50, iptg:1.0, temp:37, expH:4,  od:0.4, mg:0,  ye:10},
+ {run:11,gly:0.8, phos:0,  iptg:1.0, temp:37, expH:24, od:0.4, mg:0,  ye:0},
+ {run:12,gly:0.0, phos:0,  iptg:0.1, temp:20, expH:4,  od:0.4, mg:0,  ye:0},
+];
+const FACTORS=[
+ {key:'gly', labelUz:'Glitserin',   labelEn:'Glycerol',       hi:0.8, lo:0.0, unit:'%'},
+ {key:'phos',labelUz:'Fosfat (media)',labelEn:'Phosphate (media)',hi:50,lo:0, unit:'mM'},
+ {key:'iptg',labelUz:'IPTG',        labelEn:'IPTG',           hi:1.0, lo:0.1, unit:'mM'},
+ {key:'temp',labelUz:'Harorat',     labelEn:'Temperature',    hi:37,  lo:20,  unit:'°C'},
+ {key:'expH',labelUz:'Ifoda vaqti (jadval)',labelEn:'Expression time (table)',hi:24, lo:4, unit:'h'},
+ {key:'od',  labelUz:'OD600 maqsadi',labelEn:'OD600 target', hi:1.2, lo:0.4,  unit:''},
+ {key:'mg',  labelUz:'MgSO4',       labelEn:'MgSO4',          hi:10,  lo:0,   unit:'mM'},
+ {key:'ye',  labelUz:'Yeast extract (media)',labelEn:'Yeast extract (media)',hi:10,lo:0,unit:'g/L'},
+];
+const LABELS='ABCDEFGHIJKL';
+
+/* ---- stoklar: faqat qo'lda qo'shiladigan moddalar.
+      P va YE bazaviy muhitda allaqachon bor! ---- */
+const SUBSTANCES={
+ Gly: {nameUz:'Glitserin', nameEn:'Glycerol', unit:'%', def:100, hintUz:'toza = 100%', hintEn:'pure = 100%'},
+ Mg:  {nameUz:'MgSO4', nameEn:'MgSO4', unit:'mM', def:1000, hintUz:'1 M = 1000 mM', hintEn:'1 M = 1000 mM'},
+ IPTG:{nameUz:'IPTG',  nameEn:'IPTG', unit:'mM', def:1000, hintUz:'1 M = 1000 mM', hintEn:'1 M = 1000 mM'},
+ Amp: {nameUz:'Ampitsillin', nameEn:'Ampicillin', unit:'mg/mL', def:100, hintUz:'100 mg/mL', hintEn:'100 mg/mL'},
+};
+
+/* ---- i18n ---- */
+const LANG={
+uz:{},
+en:{}};
+function fill(){
+ const uz=LANG.uz, en=LANG.en;
+ const D={
+  tabs_steps:['Qadamlar','Steps'], tabs_flasks:['Kolbalar','Flasks'], tabs_chart:['Grafik','Chart'], tabs_fx:["Ta'sirlar",'Effects'], tabs_set:['Sozlamalar','Settings'],
+  next:['NEXT ▶','NEXT ▶'],
+  st_lab:["Bo'sh",'Empty'], st_grow:['O\'smoqda','Growing'], st_warn:['OD o\'lchang!','Measure OD!'], st_indc:['IPTG vaqti!','Add IPTG!'],
+  st_incub:['Ishlab chiqarmoqda','Expressing'], st_harv:['Yig\'ish vaqti!','Harvest!'], st_over:['KECHIKDI!','OVERDUE!'], st_done:['Olingan ✓','Done ✓'],
+  w_title:['Qadam-baqadam rejim','Step-by-step'],
+  s1:['1 · Kolba ↔ run: o\'zing belgilangsiz','1 · Flask ↔ run: you assign'],
+  s1_hint:['Tavakkal tartibingizni dropdown-dan tanlang — almashtirish avtomatik. Batch(A–C…)= faqat qo\'yish tartibi.','Pick your random order from the dropdown — swaps are automatic. Batches are just pipetting order.'],
+  s2:['2 · Media + hujayra (batch bo\'yicha bitta tugma)','2 · Media + cells (one button per batch)'],
+  prep_btn:['✔ Batch tayyorlandi — soatlar ishga tushdi','✔ Batch prepared — clocks started'],
+  base_media:['Bazaviy media (10 ml, P va YE ichida)','Base media (10 mL, P & YE inside)'],
+  gly_add:['glitserin','glycerol'], mg_add:['MgSO4'], amp_add:['Amp'], water_add:['suv (tenglashtirish)','water (equalize)'],
+  and_then:['keyin','then'], inoc_hint:['µL hujayra — soat boshlanadi','µL cells — clock starts'],
+  s3:['3 · O\'sish nazorati','3 · Growth monitor'],
+  s4:['4 · IPTG qo\'shish navbati','4 · IPTG queue'],
+  s5:['5 · Harvest','5 · Harvest'],
+  empty_prep:['Hammasi tayyor!','All prepared!'],
+  empty_grow:['Hali o\'smoqda kolba yo\'q. Yukoridagi batchlarni boshlashing.','No growing flasks yet. Prep a batch above.'],
+  empty_induce:['Hali OD maqsadga yetgan kolba yo\'q.','No flask reached its OD target yet.'],
+  empty_harv:['Hali induksiya yo\'q.','No inductions yet.'],
+  od_title:['OD600 o\'lchash','Measure OD600'], od_btn:['✔ Yozdim','✔ Log OD'], od_lbl:['OD600 qiymati *','OD600 reading *'],
+  od_sample_hint:['namuna µL avtomatik ayiriladi','sample µL auto-subtracted'], dil:['Suyultirish','Dilution'],
+  wave_harvest:['Sentrifuga: 7068\u00d7g \u00b7 20 min','Centrifuge: 7068\u00d7g \u00b7 20 min'],
+  concrete:['Sentrifuga qilindi: 7068\u00d7g \u00b7 20 min','Centrifuged 7068\u00d7g \u00b7 20 min'],
+  harvest_done:['✔ Yig\'ildi','✔ Harvested'],
+  induce_title:['IPTG qo\'shish','Add IPTG'], induce_btn:['✔ IPTG solindi — taymer ketti','✔ IPTG in — timer started'],
+  iptg_qty:['Qo\'shiladigan IPTG (µL):','IPTG to add (µL):'],
+  post_time:['Nechi soat turadi (h):','How long (h):'],
+  weq:['+ suv tenglashtirish','+ water top-up'],
+  effects_title:[' PB12 faktorlari ta\'siri (javobni har kolbaga kiriting)','PB12 factor effects (enter a response per flask)'],
+  resp_lbl:['Natija (ball yoki mg/L)','Response (score or mg/L)'],
+  set_stocks:['Stok konsentratsiyalari — µL hisob shular asosida','Stock concentrations — all µL computed from these'],
+  set_proto:['Protokol raqamlari','Protocol numbers'],
+  base_vol:['Bazaviy media / kolba (µL)','Base media / flask (µL)'],
+  weq_set:['Suv tenglashtirish','Water top-up'],
+  inoc_set:['Hujayra (inoculum, µL)','Inoculum (µL)'], odS_set:['OD namuna (µL)','OD sample (µL)'],
+  amp_ul:['Amp / kolba (µL)','Amp / flask (µL)'], reader:['Reader limiti OD','Reader limit OD'],
+  pi37:['IPTG+keyin soat @37°C','Post-IPTG h @37°C'], pi20:['IPTG+keyin soat @20°C','Post-IPTG h @20°C'],
+  save:['💾 Saqlash','💾 Save'],
+  export:['⬇ Zaxira (JSON)','⬇ Backup (JSON)'], imp:['⬆ Yuklash','⬆ Import'], reset:['🗑 Hammasini o\'chirish','🗑 Reset all'],
+  chart_title:['OD600 o\'sish va prognoz','OD600 growth & prediction'],
+  log_title:['Amallar tarixi','Audit log'],
+  map_title:['Kolba↔run xarita','Flask↔run map'],
+ };
+ Object.keys(D).forEach(k=>{ uz[k]=D[k][0]; en[k]=D[k][1]; });
+}
+fill();
+
+/* ---- state ---- */
+function defaultState(){
+  const stocks={}; for(const k in SUBSTANCES) stocks[k]={c:SUBSTANCES[k].def};
+  return {
+    version:3,
+    lang:'uz',
+    settings:{ baseUl:10000, inocUl:150, odSampleUl:200, ampUl:10, readerMaxOd:1.2,
+               equalizeWater:true, postInd:{37:4,20:12}, order:null },
+    stocks, flasks:null,
+    dismissed:{}, view:'steps', selLab:'A', globalLog:[],
+    randomSeed:null, randomizedAt:null,
+  };
+}
+function t(k){ const d=LANG[S.lang]||LANG.uz; return d[k]!=null? d[k] : (LANG.uz[k]!=null? LANG.uz[k] : k); }
+function tF(k){ return t(k).replace('*','').trim(); }
+function tx(uz,en){ return S.lang==='en'? en : uz; }  // inline two-language strings
+
+function initFlasks(order){
+  if(!order) order=S.settings.order||DESIGN.map(d=>d.run);
+  S.settings.order=order;
+  S.flasks=order.map((run,i)=>({
+    run, label:LABELS[i], batch:Math.floor(i/3)+1,
+    step:'prep', startTs:null, totalVol:0, startTotal:0,
+    additions:[], ods:[], iptgUl:null, incubTemp:null, incubH:null, incubEnds:null, inducedTs:null,
+    harvested:false, harvestedTs:null, response:null, log:[]
+  }));
+}
+function mkFlasks(){ if(!S.flasks){ initFlasks(DESIGN.map(d=>d.run)); } }
+function assignRun(label,newRun){
+  const a=S.flasks.find(x=>x.label===label); if(!a) return;
+  if(a.step!=='prep'){ toast(tx('🔒 '+label+' allaqachon o\'smoqda — o\'zgarmaydi.','🔒 '+label+' is already growing — locked.'),'bg-red-900 border border-red-500'); return; }
+  newRun=Number(newRun); const b=S.flasks.find(x=>x.run===newRun); if(!b||b.label===label){ save(); render(); return; }
+  const old=a.run; a.run=newRun; b.run=old;
+  logg(null,'setup', tx('Kolba '+label+' = run '+newRun+' (eski run '+old+' → kolba '+b.label+')','Flask '+label+' = run '+newRun+' (old run '+old+' → flask '+b.label+')'));
+  save(); render();
+}
+function randomizeNow(){ const o=DESIGN.map(d=>d.run);
+  for(let i=o.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [o[i],o[j]]=[o[j],o[i]]; }
+  initFlasks(o); S.randomizedAt=Date.now(); save(); render(); }
+
+let S=(()=>{ try{ const raw=localStorage.getItem(LS);
+  if(raw){ const s=JSON.parse(raw); if(s&&s.version===3&&s.settings&&s.flasks&&s.flasks.length===12) return s; } }
+  catch(e){} return defaultState(); })();
+mkFlasks();
+function save(){ try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){} }
+function toggleLang(){ S.lang=S.lang==='uz'? 'en':'uz'; save(); render(); updateLangBtn(); }
+function updateLangBtn(){ const b=document.getElementById('langBtn'); if(b) b.textContent='🌐 '+(S.lang==='uz'?'UZ':'EN'); }
+
+const $=s2=>document.querySelector(s2);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const n1=n=>Number(n).toFixed(1), n2=n=>Number(n).toFixed(2);
+const now=()=>Date.now();
+function hms(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60);
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function fL(label){ return S.flasks.find(x=>x.label===label); }
+function fR(runN){ return S.flasks.find(x=>x.run===Number(runN)); }
+function M(fl){ return DESIGN[fl.run-1]; }
+function sumAdd(fl,sub){ return fl.additions.filter(a=>a.sub===sub).reduce((t,a)=>t+a.ul,0); }
+function lastOd(fl){ return fl.ods.length? fl.ods[fl.ods.length-1]:null; }
+function effOd(o){ return o.od*o.dil; }
+function logg(fl,type,text){ const e={ts:now(), label:fl?fl.label:null, run:fl?fl.run:null, type, text};
+  S.globalLog.push(e); if(fl) fl.log.push(e); save(); }
+
+/* ---- retsept: bazaviy 10 ml + Gly/Mg/Amp + suv tenglashtirish.
+      FOSFAT va YE bazaviy muhitda bor — qo'shilmaydi! ---- */
+function supRows(){ const rows={}; let maxSum=0;
+  S.flasks.forEach(fl=>{ const m=M(fl), Tk=S.settings.baseUl;
+    const Gly=m.gly>0? Math.round(m.gly*Tk/S.stocks.Gly.c):0;
+    const Mg =m.mg>0 ? Math.round(m.mg *Tk/S.stocks.Mg.c):0;
+    const r={Gly, Mg, sum:Gly+Mg}; rows[fl.label]=r; if(r.sum>maxSum) maxSum=r.sum; });
+  return {rows,maxSum}; }
+function recipe(fl){ const st=S.settings, sr=supRows(), r=sr.rows[fl.label];
+  r.Water= st.equalizeWater? (sr.maxSum-r.sum):0;
+  r.Amp=st.ampUl; r.base=st.baseUl; r.inoc=st.inocUl;
+  r.finalVol = r.base + r.Gly + r.Mg + r.Water + r.Amp + r.inoc; // hamma kolbada bir xil
+  return r; }
+function iptgUlFor(fl){ return M(fl).iptg * fl.totalVol / (S.stocks.IPTG.c||1); }
+function waterEqUl(fl,iu){ const mx=1.0*fl.totalVol/S.stocks.IPTG.c; return Math.max(0, mx-(iu!=null?iu:iptgUlFor(fl))); }
+function iptgMmNow(fl){ return S.stocks.IPTG.c*sumAdd(fl,'IPTG')/Math.max(fl.totalVol,1); }
+function mediaTypes(){ const g={};
+  S.flasks.forEach(fl=>{ const m=M(fl); const k=m.phos+'|'+m.ye;
+    (g[k]=g[k]||{phos:m.phos, ye:m.ye, flasks:[]}).flasks.push(fl); });
+  return Object.values(g).sort((a,b)=>a.flasks.length-b.flasks.length); }
+
+/* =================== STATUS / PROGNOZ / NAVBAT =================== */
+const ST={
+ lab:  {liq:'#334155'}, grow:{liq:'#0ea5e9'}, warn:{liq:'#facc15'}, indc:{liq:'#4ade80'},
+ incub:{liq:'#a78bfa'}, harv:{liq:'#fb923c'}, over:{liq:'#ef4444'}, done:{liq:'#059669'},
+};
+function stBadge(st){ const cls={lab:'bg-slate-800 text-slate-300 border border-slate-600', grow:'bg-sky-900/70 text-sky-300 border border-sky-600',
+ warn:'bg-yellow-900/60 text-yellow-300 border border-yellow-600', indc:'bg-green-900/70 text-green-300 border border-green-500',
+ incub:'bg-violet-900/70 text-violet-300 border border-violet-600', harv:'bg-orange-900/70 text-orange-300 border border-orange-500',
+ over:'bg-red-900/70 text-red-300 border border-red-500', done:'bg-emerald-900/60 text-emerald-300 border border-emerald-600'}[st];
+ const key={lab:'st_lab',grow:'st_grow',warn:'st_warn',indc:'st_indc',incub:'st_incub',harv:'st_harv',over:'st_over',done:'st_done'}[st];
+ return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold '+cls+'">'+t(key)+'</span>'; }
+function ozdReached(fl){ const lo=lastOd(fl); return lo && effOd(lo)>=M(fl).od-0.001; }
+function status(fl){
+  if(fl.step==='prep') return 'lab';
+  if(fl.harvested) return 'done';
+  if(fl.step==='induced') return (fl.incubEnds&&now()>=fl.incubEnds)?'harv':'incub';
+  if(ozdReached(fl)) return 'indc';
+  if(overdue(fl)) return 'over';
+  if(measureDue(fl)) return 'warn';
+  return 'grow';
+}
+function overdue(fl){ if(fl.step!=='growth') return false; const p=predictHit(fl);
+  return p && now()>p+2*3.6e6; }
+function growRate(fl){ const pts=fl.ods.filter(o=>effOd(o)>0);
+  if(pts.length>=2){ const lns=pts.map(o=>({x:(o.ts-fl.startTs)/3.6e6, y:Math.log(effOd(o))}));
+    const n=lns.length, mx=lns.reduce((tt,p)=>tt+p.x,0)/n, my=lns.reduce((tt,p)=>tt+p.y,0)/n;
+    let num=0,den=0; lns.forEach(p=>{num+=(p.x-mx)*(p.y-my); den+=(p.x-mx)**2;});
+    const mu=den>1e-9?num/den:NaN;
+    if(isFinite(mu)&&mu>0.1&&mu<3.5) return mu; }
+  return 0.9; }  // fallback growth rate @ 37°C (pre-IPTG)
+function estGrowthH(odT){
+  return odT>1? 4:2.5;   // 37°C (hammasi IPTG gacha 37°C da o\'sadi; handwriting: OD 0.4 ~2.5h)
+}
+function predictHit(fl){ const m=M(fl);
+  if(fl.step==='prep') return null;
+  const lo=lastOd(fl); if(!lo||effOd(lo)<=0) return fl.startTs+estGrowthH(m.od)*3.6e6;
+  const mu=growRate(fl), d=Math.log(m.od/effOd(lo));
+  return lo.ts+(d>0?d/mu:0)*3.6e6; }
+function measureDue(fl){ if(fl.step!=='growth'||ozdReached(fl)) return false;
+  const p=predictHit(fl); return p && now()>=p-0.15*Math.max(p-fl.startTs,3.6e6); }
+
+function alerts(){ const out=[];
+  S.flasks.forEach(fl=>{ const m=M(fl), st=status(fl);
+    const nm='Kolba '+fl.label+' (run '+fl.run+')';
+    if(st==='lab')  out.push({id:fl.label+'-p', lvl:'info', fl, text:tx( nm+' bo\'sh — batch '+fl.batch+' ni quyishing kerak ('+m.temp+'°C).', 'Flask '+fl.label+' (run '+fl.run+') empty — prep batch '+fl.batch+' ('+m.temp+'°C).')});
+    if(st==='warn') out.push({id:fl.label+'-m', lvl:'warn', fl, text:tx( nm+': OD o\'lchash vaqti! OD '+m.od+' ≈'+new Date(predictHit(fl)).toLocaleTimeString()+'da ('+(fl.ods.length>=2?'model':'tahminiy')+') → IPTG '+m.iptg+' mM → '+postIndH(m.temp)+'h ifoda @ '+m.temp+'°C.', 'Flask '+fl.label+': measure OD! '+m.od+' ~'+new Date(predictHit(fl)).toLocaleTimeString()+' ('+(fl.ods.length>=2?'model':'estimate')+') → IPTG → '+postIndH(m.temp)+'h expression @ '+m.temp+'C.')});
+    if(st==='indc') out.push({id:fl.label+'-i', lvl:'crit', fl, text:tx( nm+': OD yetdi! Endi ~'+n2(iptgUlFor(fl))+' µL IPTG qo\'shing → '+postIndH(m.temp)+' soat '+m.temp+'°C da.', 'Flask '+fl.label+': OD target reached! Add ~'+n2(iptgUlFor(fl))+' µL IPTG → '+postIndH(m.temp)+' h at '+m.temp+'°C.')});
+    if(st==='harv') out.push({id:fl.label+'-h', lvl:'crit', fl, text:tx( nm+': ifoda tugadi ('+fl.incubH+'h @ '+fl.incubTemp+'°C)! Sentrifuga: 7068\u00d7g \u00b7 20 min.', 'Flask '+fl.label+': incubation done ('+fl.incubH+'h @ '+fl.incubTemp+'°C)! Centrifuge 7068\u00d7g \u00b7 20 min.')});
+    if(st==='over') out.push({id:fl.label+'-o', lvl:'crit', fl, text:tx( nm+': KECHIKDINGIZ — hoziq OD o\'lchang! (prognoz '+new Date(predictHit(fl)).toLocaleTimeString()+' edi)', 'Flask '+fl.label+': OVERDUE — measure now! (was predicted '+new Date(predictHit(fl)).toLocaleTimeString()+')')});
+  });
+  return out.filter(a=>!S.dismissed[a.id]); }
+function postIndH(tempN){ const p=S.settings.postInd; return p[tempN]!=null? p[tempN]:(tempN>=30?4:12); }
+function anyStarted(){ return S.flasks.some(x=>x.step!=='prep'); }
+function nextActions(){ const q=[];
+  S.flasks.forEach(fl=>{ const st=status(fl);
+    if(st==='harv') q.push({p:1,fl,act:'harvest'});
+    if(st==='indc') q.push({p:2,fl,act:'induce'});
+    if(st==='over') q.push({p:3,fl,act:'od'});
+    if(st==='warn') q.push({p:4,fl,act:'od'}); });
+  const prepped=S.flasks.filter(x=>x.step==='prep').slice(0,3);
+  if(prepped.length) q.push({p:5,fl:prepped[0],act:'prep',batch:prepped[0].batch});
+  return q.sort((a,b)=>a.p-b.p); }
+
+/* =================== MODAL / TOAST =================== */
+let modalOpen=false;
+function openModal(html){ modalOpen=true;
+  $('#modalRoot').innerHTML='<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto" onclick="if(event.target===this) closeModal()">'+
+    '<div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg my-8 p-5 shadow-2xl fadein">'+html+'</div></div>'; }
+function closeModal(){ modalOpen=false; $('#modalRoot').innerHTML=''; render(); }
+function toast(msg,cls){ const d=document.createElement('div');
+  d.className='px-4 py-2.5 rounded-xl text-sm shadow-2xl fadein '+(cls||'glass border border-slate-700');
+  d.innerHTML=msg; $('#toastRoot').appendChild(d); setTimeout(()=>d.remove(),4500); }
+function gval(nmN){ const e=document.querySelector('.modal-in[name='+nmN+']'); if(!e||e.value===''||e.value==null) return undefined; return parseFloat(e.value); }
+function gchecked(nmN){ const e=document.querySelector('.modal-in[name='+nmN+']'); return !!(e&&e.checked); }
+
+/* =================== AMALLAR =================== */
+function confPrep(b){
+  const fls=S.flasks.filter(x=>x.batch===b&&x.step==='prep');
+  if(!fls.length){ toast(t('empty_prep')); return; }
+  const rows=fls.map(fl=>{ const r=recipe(fl); const m=M(fl);
+    return '<tr class="border-t border-slate-800"><td class="px-2 py-2 font-bold text-base">'+fl.label+'</td>'+
+    '<td class="px-2 py-2 text-xs text-slate-300 leading-relaxed">'+
+      '<b class="text-cyan-300 text-sm">'+r.base+' µL</b> '+t('base_media')+'<br>'+
+      (r.Gly>0?'+ '+r.Gly+' µL '+t('gly_add')+'<br>':'')+
+      (r.Mg>0?'+ '+r.Mg+' µL '+t('mg_add')+'<br>':'')+
+      (r.Water>0?'+ <span class="text-sky-300">'+r.Water+' µL '+t('water_add')+'</span><br>':'')+
+      '+ '+r.Amp+' µL '+t('amp_add')+'<br>'+
+      '<span class="text-emerald-300">'+t('and_then')+' '+r.inoc+t('inoc_hint')+'</span><br>'+
+      '<span class="text-amber-200">'+tx('Reja: OD '+m.od+' ga o\'sish @37°C taxminan ~'+estGrowthH(m.od)+'h (aniqrog\'i 2 o\'lchovdan keyin) → IPTG → '+postIndH(m.temp)+'h ifoda @ '+m.temp+'°C (jami ≈'+(estGrowthH(m.od)+postIndH(m.temp))+'h)','Plan: grow to OD '+m.od+' @37°C in ~'+estGrowthH(m.od)+'h est. (better after 2 readings) → IPTG → '+postIndH(m.temp)+'h expression @ '+m.temp+'°C (total ≈'+(estGrowthH(m.od)+postIndH(m.temp))+'h)')+'</span>'+
+    '</td></tr>'; }).join('');
+  openModal('<h3 class="text-lg font-bold mb-1">Batch '+b+'</h3>'+
+   '<p class="text-xs text-slate-400 mb-3">'+tx('Har kolbaga shu tartibda quying. Bacik tasdiqlash uchun bitta tugma — soatlar o\'zi ketadi.','Pipette into each flask in this order. One button confirms all — clocks start automatically.')+'</p>'+
+   '<table class="w-full">'+rows+'</table>'+
+   '<div class="flex gap-2 mt-4">'+
+   '<button onclick="doPrep('+b+')" class="lbtn px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-extrabold">'+t('prep_btn')+'</button>'+
+   '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">✕</button></div>');
+}
+function doPrep(b){
+  S.flasks.filter(x=>x.batch===b&&x.step==='prep').forEach(fl=>{
+    const r=recipe(fl);
+    fl.step='growth'; fl.startTs=now(); fl.totalVol=r.finalVol; fl.startTotal=r.finalVol;
+    [['Gly',r.Gly],['Mg',r.Mg],['Amp',r.Amp],['Water',r.Water]].forEach(([k,v])=>{ if(v>0) fl.additions.push({sub:k,ul:v,ts:fl.startTs,note:'prep'}); });
+    logg(fl,'prep', tx('Kolba '+fl.label+': '+r.base+' µL media + Gly '+r.Gly+' + Mg '+r.Mg+' + suv '+r.Water+' + Amp '+r.Amp+' + hujayra '+r.inoc+' = '+r.finalVol+' µL. '+M(fl).temp+'°C, maqsad OD '+M(fl).od,
+        'Flask '+fl.label+': '+r.base+' µL media + gly '+r.Gly+' + Mg '+r.Mg+' + water '+r.Water+' + Amp '+r.Amp+' + cells '+r.inoc+' = '+r.finalVol+' µL. O\'sish @ 37°C → OD '+M(fl).od+'; ifoda keyin @ '+M(fl).temp+'°C.'));
+  });
+  toast(tx('✅ Batch '+b+' ishga tushdi!','✅ Batch '+b+' live!'),'bg-emerald-900 border border-emerald-500 alertg');
+  closeModal();
+}
+const DIL={v:1};
+function modalOd(label){ const fl=fL(label), m=M(fl); const lo=lastOd(fl);
+  openModal('<h3 class="text-lg font-bold">'+t('od_title')+' — '+label+' <span class="text-xs text-slate-400">(run '+fl.run+', maqsad '+m.od+(S.lang==='en'?'; target:'+m.od:'')+')</span></h3>'+
+   '<p class="text-xs text-slate-400 mb-3">'+(lo?tx('Oxirgi OD: <b>'+n2(effOd(lo))+'</b>. ','Last OD: <b>'+n2(effOd(lo))+'</b>. '):'')+t('od_sample_hint')+' '+(m.od>S.settings.readerMaxOd? tx('OD '+S.settings.readerMaxOd+'+  bo\'lsa ×2/×5 suyuqlashtirib o\'qing.','If OD > '+S.settings.readerMaxOd+', dilute ×2/×5.'):'')+'</p>'+
+   '<div class="space-y-3 text-sm">'+
+    '<label class="block">'+t('od_lbl')+'<input name="od" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 text-lg tnum" placeholder="0.35" autofocus></label>'+
+    '<div class="flex items-center gap-2 text-xs"><span class="text-slate-400">'+t('dil')+':</span>'+
+     [1,2,5].map(x=>'<button onclick="DIL.v='+x+';document.querySelectorAll(\'.dilbtn\').forEach(b=>b.className=\'dilbtn px-3 py-1.5 rounded-lg font-bold \'+(b.getAttribute(\'data-d\')==\''+x+'\'?\'bg-cyan-600\':\'bg-slate-800 border border-slate-600\'))" data-d="'+x+'" class="dilbtn px-3 py-1.5 rounded-lg font-bold '+(x===1?'bg-cyan-600':'bg-slate-800 border border-slate-600')+'">×'+x+'</button>').join('')+
+     '<span class="text-slate-400 ml-2">'+tx('namuna','sample')+':</span><input name="sv" class="modal-in w-20 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1" value="'+S.settings.odSampleUl+'"> µL'+
+    '</div></div>'+
+   '<div class="flex gap-2 mt-4"><button onclick="doOd(\''+label+'\')" class="lbtn px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 text-slate-950 font-extrabold">'+t('od_btn')+'</button>'+
+   '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">✕</button></div>');
+}
+function doOd(label){ const fl=fL(label), m=M(fl);
+  const od=gval('od'); if(od==null||od<0){ toast(tx('⚠ OD qiymatini yozing','⚠ Type the OD reading'),'bg-red-900 border border-red-500'); return; }
+  const sv=gval('sv')!=null?gval('sv'):S.settings.odSampleUl;
+  fl.totalVol=Math.max(0,fl.totalVol-(sv||0));
+  fl.ods.push({ts:now(), od, dil:DIL.v, volUl:sv});
+  delete S.dismissed[label+'-m']; delete S.dismissed[label+'-o'];
+  logg(fl,'od','OD600 = '+od+(DIL.v>1?' ×'+DIL.v+' = '+n2(od*DIL.v):'')+' ('+sv+' µL namuna) → hajm '+fl.totalVol);
+  const eff=od*DIL.v;
+  if(eff>=m.od&&fl.step==='growth') toast(tx('🎯 Kolba '+label+': OD yetdi! NEXT tugmasi → IPTG.','🎯 Flask '+label+': OD reached! NEXT → IPTG.'),'bg-green-900 border border-green-500 alertg');
+  else toast('✅ OD '+n2(eff), 'bg-emerald-900 border border-emerald-500');
+  DIL.v=1; closeModal();
+}
+function modalInduce(label){ const fl=fL(label), m=M(fl);
+  const rec=n2(iptgUlFor(fl)); const h=postIndH(m.temp);
+  openModal('<h3 class="text-lg font-bold">'+t('induce_title')+' — '+label+' <span class="text-xs text-slate-400">(run '+fl.run+')</span></h3>'+
+   '<p class="text-xs text-slate-400 mb-3">'+tx('Hozirgi hajm '+fl.totalVol+' µL, stok '+S.stocks.IPTG.c+' mM → dizayn '+m.iptg+' mM uchun tavsiya: <b>'+rec+' µL</b>. Buni o\'zgartirsangiz bo\'ladi.','Current '+fl.totalVol+' µL, stock '+S.stocks.IPTG.c+' mM, design '+m.iptg+' mM → suggested <b>'+rec+' µL</b>. Edit if needed.')+'</p>'+
+   '<div class="space-y-3 text-sm">'+
+   '<label class="block">'+t('iptg_qty')+'<input name="iu" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 text-lg tnum font-bold text-emerald-300" value="'+rec+'"></label>'+
+   '<div class="text-xs bg-slate-800/70 rounded-xl p-3">'+tx('IPTG dan keyin: <b>'+h+' soat '+m.temp+'°C</b> da. Tez tanlash:','After IPTG: <b>'+h+' h at '+m.temp+'°C</b>. Quick picks:')+
+    ' '+[4,8,12,16,24].map(x=>'<button onclick="document.querySelector(\'.modal-in[name=ih]\').value='+x+'" class="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 font-bold">'+x+'h</button>').join('')+'</div>'+
+   '<label class="block">'+t('post_time')+'<input name="ih" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" value="'+h+'"></label>'+
+   '<label class="flex items-center gap-2 text-xs text-slate-300 bg-slate-800/70 rounded-xl p-2"><input type="checkbox" name="weq" class="modal-in w-4 h-4" '+((m.iptg<1.0&&S.settings.equalizeWater)?'checked':'')+'> '+t('weq')+': +'+n2(waterEqUl(fl))+' µL</label>'+
+   '</div>'+
+   '<div class="flex gap-2 mt-4"><button onclick="doInduce(\''+label+'\')" class="lbtn px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-slate-950 font-extrabold alertg">'+t('induce_btn')+'</button>'+
+   '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">✕</button></div>');
+}
+function doInduce(label){ const fl=fL(label), m=M(fl);
+  let iu=gval('iu'); if(iu==null) iu=iptgUlFor(fl);
+  let ih=gval('ih'); if(ih==null) ih=postIndH(m.temp);
+  if(iu<0||ih<=0){ toast(tx('⚠ Qiymatlar noto\'g\'ri','⚠ Invalid values'),'bg-red-900 border border-red-500'); return; }
+  fl.additions.push({sub:'IPTG',ul:+iu.toFixed(2),ts:now(),note:'ind'});
+  fl.totalVol+=iu;
+  if(gchecked('weq')){ const wq=waterEqUl(fl,iu);
+    if(wq>0){ fl.additions.push({sub:'Water',ul:+wq.toFixed(1),ts:now(),note:'weq'}); fl.totalVol+=wq; } }
+  fl.step='induced'; fl.inducedTs=now(); fl.iptgUl=iu; fl.incubTemp=m.temp; fl.incubH=ih; fl.incubEnds=now()+ih*3.6e6;
+  delete S.dismissed[label+'-i']; delete S.dismissed[label+'-h'];
+  logg(fl,'induce','IPTG '+iu+' µL (≈'+n2(iptgMmNow(fl))+' mM / dizayn '+m.iptg+') → '+ih+' h @ '+m.temp+'°C → '+new Date(fl.incubEnds).toLocaleTimeString());
+  toast(tx('🧪 Kolba '+label+': ifoda '+ih+' soat '+m.temp+'°C da — keyin yig\'amiz.','🧪 Flask '+label+': expressing '+ih+' h at '+m.temp+'°C.'),'bg-violet-900 border border-violet-500');
+  closeModal();
+}
+function modalHarvest(label){ const fl=fL(label);
+  openModal('<h3 class="text-lg font-bold">'+tx('Yig\'ish — kolba '+label,'Harvest — flask '+label)+' <span class="text-xs text-slate-400">(run '+fl.run+')</span></h3>'+
+   '<p class="text-sm text-slate-300 my-3">'+t('wave_harvest')+'</p>'+
+   '<div class="flex gap-2 mt-4"><button onclick="doHarvest(\''+label+'\')" class="lbtn px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-extrabold">'+t('harvest_done')+'</button>'+
+   '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">✕</button></div>');
+}
+function doHarvest(label){ const fl=fL(label);
+  fl.harvested=true; fl.harvestedTs=now(); fl.step='done'; delete S.dismissed[label+'-h'];
+  logg(fl,'harvest',t('concrete')); confetti(); beep(660,140); setTimeout(()=>beep(880,180),150); toast(tx('✅ Kolba '+label+' tamamland!','✅ Flask '+label+' complete!'),'bg-emerald-900 border border-emerald-500'); closeModal(); }
+
+/* ---- ✎ TO\'G\'RILATIB BERISH: vaqt va hajmni qo\'lda o\'zgartirish ---- */
+function modalFix(label){ const fl=fL(label); const m=M(fl);
+  openModal('<h3 class="text-lg font-bold">✎ \"To\'g\'riltish\" — kolba '+label+' <span class="text-xs text-slate-400">(run '+fl.run+')</span></h3>'+
+  '<p class="text-xs text-slate-400 mb-3">'+tx('Esdan chiqdi yoki xato bo\'ldimi? Keraklisini tanlab to\'g\'rilang.','Forgot something or made a mistake? Pick a fix below.')+'</p>'+
+  '<div class="space-y-3 text-sm'>
+  '<input type="hidden" name="fx_label" value="'+label+'">'+
+  (fl.step==='growth'?
+  '<label class="block">⏱ '+tx('Boshlanganiga necha soat o\'tdi? (agar tugma bosilgani kechiksa)','Hours since actual start (if you pressed late):')+
+  '<input name="fx_start" type="number" step="0.05" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="e.g. 1.5"></label>':'')+
+  (fl.step==='induced'?
+  '<label class="block">⏳ '+tx('Qolgan ifoda vaqti (soat) — o\'zgartirish','Remaining expression hours (h) — change:')+
+  '<input name="fx_inc" type="number" step="0.1" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="e.g. 6"></label>':'')+
+  '<label class="block">💧 '+tx('Hajm tuzatish: ozroq qos/+ yoki ayir/- (µL)','Volume fix: add (+) or remove (−) some µL:')+
+  '<input name="fx_vol" type="number" step="any" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="e.g. 100 yoki -100"></label>'+
+  '</div>'+
+  '<div class="flex gap-2 mt-4"><button onclick="doFix()" class="lbtn px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-extrabold">✔ \"Qo\'llash\"</button>'+
+  '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">✕</button></div>');
+}
+function doFix(){ const label=gstr('fx_label'); const fl=fL(label);
+  const st=gval('fx_start'); const inc=gval('fx_inc'); const vol=gval('fx_vol');
+  if(st!=null&&st>=0&&fl.step==='growth'){ fl.startTs=now()-st*3.6e6; logg(fl,'fix','Start vaqti to\'g\'rilandi: '+st+'h oldin boshlangan.'); }
+  if(inc!=null&&inc>0&&fl.step==='induced'){ fl.incubH=inc; fl.incubEnds=now()+inc*3.6e6; logg(fl,'fix','Ifoda vaqti o\'zgartirildi: qoldi '+inc+'h.'); }
+  if(vol!=null&&vol!==0){ fl.totalVol=Math.max(0,fl.totalVol+vol); fl.additions.push({sub:(vol>0?'Water (+fix)':'sample (−fix)'), ul:Math.abs(vol), ts:now(), note:'manual fix'}); logg(fl,'fix','Hajm to\'g\'rilandi: '+(vol>0?'+':'')+vol+' µL → jami '+fl.totalVol.toFixed(0)+' µL.'); }
+  toast('✎ '+tx('To\'g\'rildi','Fixed')); closeModal(); }
+function gstr(nmN){ const e=document.querySelector('.modal-in[name='+nmN+']'); return e? e.value : ''; }
+function doNext(){ const q=nextActions();
+  if(!q.length){ toast(tx('🎉 Hozircha hammasi joyida. Keyingi rejalar: shuncha kuting va odamlarni kuzatib boring.','🎉 All on track — nothing pending.'),'glass border border-slate-600'); return; }
+  const a=q[0]; const L=a.fl.label;
+  if(a.act==='prep') confPrep(a.batch);
+  else if(a.act==='od'){ DIL.v=1; modalOd(L); }
+  else if(a.act==='induce') modalInduce(L);
+  else if(a.act==='harvest') modalHarvest(L);
+}
+function openFor(label,what){ if(what==='od'){ DIL.v=1; modalOd(label); }
+  else if(what==='induce') modalInduce(label);
+  else if(what==='harvest') modalHarvest(label); }
+
+/* =================== RENDER: umumiy =================== */
+const VIEWS=[['steps','tabs_steps'],['flasks','tabs_flasks'],['chart','tabs_chart'],['fx','tabs_fx'],['set','tabs_set']];
+function renderNav(){ $('#navTabs').innerHTML=VIEWS.map(([v,k])=>{
+  const on=S.view===v;
+  return '<button onclick="go(\''+v+'\')" class="px-3 py-1.5 rounded-xl font-semibold '+(on?'bg-cyan-500 text-slate-950':'bg-slate-800 text-slate-300 hover:bg-slate-700')+'">'+t(k)+'</button>'; }).join(''); }
+function go(v){ S.view=v; save(); render(); window.scrollTo(0,0); }
+
+const BCOLORS={1:'#10b981',2:'#0ea5e9',3:'#8b5cf6',4:'#f43f5e'};
+let uidc=0;
+function flaskSVG(fl,w){
+  const st=status(fl);
+  const T=fl.startTotal>0? fl.startTotal : (S.settings.baseUl+200);
+  const lvl=fl.step==='prep'?0:Math.max(0.04,Math.min(1,fl.totalVol/T));
+  const cid='fc'+(uidc++), bid='bg'+(uidc++);
+  const y=76-lvl*42; const bc=BCOLORS[fl.batch]||'#64748b'; const liq=fl.step==='prep'?'#1e293b':ST[st].liq;
+  return '<svg viewBox="0 0 64 100" width="'+w+'" style="max-width:100%">'+
+   '<defs><clipPath id="'+cid+'"><path d="M27 12 L37 12 L37 30 L50 70 Q53 80 43 80 L21 80 Q11 80 14 70 L27 30 Z"/></clipPath>'+
+   '<linearGradient id="'+bid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+liq+'" stop-opacity="0.95"/><stop offset="1" stop-color="'+liq+'" stop-opacity="0.55"/></linearGradient></defs>'+
+   '<rect x="25" y="4" width="14" height="11" rx="2" fill="#94a3b8"/><path d="M25 6 L39 6 L39 9 L25 9 Z" fill="#cbd5e1"/>'+
+   '<g clip-path="url(#'+cid+')"><rect class="liq" x="8" y="'+y.toFixed(1)+'" width="48" height="90" fill="url(#'+bid+')"/>'
+   +(lvl>0.15?('<circle class="bub" cx="27" cy="'+(y+30).toFixed(0)+'" r="2" fill="#fff" opacity=".5"/><circle class="bub b2" cx="36" cy="'+(y+26).toFixed(0)+'" r="1.5" fill="#fff" opacity=".45"/><circle class="bub b3" cx="31" cy="'+(y+33).toFixed(0)+'" r="1.2" fill="#fff" opacity=".4"/>'):'')+'</g>'+
+   '<path d="M27 12 L37 12 L37 30 L50 70 Q53 80 43 80 L21 80 Q11 80 14 70 L27 30 Z" fill="none" stroke="#7dd3fc" stroke-width="1.6" opacity="0.8"/>'+
+   '<rect x="22" y="66" width="20" height="9" rx="2" fill="'+bc+'" opacity="0.92"/>'+
+   '<text x="32" y="72.5" font-size="7" font-weight="800" text-anchor="middle" fill="#fff">'+fl.label+'</text>'+
+   '<text x="32" y="90" font-size="7" fill="#94a3b8" text-anchor="middle">run '+fl.run+'</text>'+
+   '<text x="32" y="98" font-size="5.5" fill="#64748b" text-anchor="middle">'+(fl.step==='prep'?'10 mL':(fl.totalVol/1000).toFixed(2)+' mL')+'</text></svg>';
+}
+function liveInfo(fl){ const m=M(fl), st=status(fl);
+  if(fl.step==='prep') return '<span class="text-slate-400">batch '+fl.batch+' · '+m.temp+'°C</span>';
+  if(fl.harvested) return '<span class="text-emerald-400">✓ '+new Date(fl.harvestedTs).toLocaleTimeString()+'</span>';
+  if(fl.step==='induced'){ const left=fl.incubEnds-now();
+    return left>0? '⏳ <b class="tnum text-violet-300">'+hms(left)+'</b> ('+fl.incubH+'h @ '+fl.incubTemp+'°C)'
+                 : '<b class="text-orange-400">Sentrifuga! ▶ NEXT</b>'; }
+  const lo=lastOd(fl), p=predictHit(fl);
+  return '⏱ <b class="tnum">'+hms(now()-fl.startTs)+'</b> · OD '+(lo?n2(effOd(lo)):'—')+' → '+m.od+
+    (p? ' · <span class="text-slate-400">≈'+new Date(p).toLocaleTimeString()+'('+(fl.ods.length>=2?'model':'tahminiy')+')</span>':''); }
+function quickBtns(fl){ const st=status(fl), L='\''+fl.label+'\''; let b='';
+  if(st==='lab')  b+='<button onclick="confPrep('+fl.batch+')" class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-xs font-bold">▶ '+tx('batchni quyish','prep batch')+' '+fl.batch+'</button>';
+  if(st==='grow'||st==='warn'||st==='over') b+='<button onclick="openFor('+L+',\'od\')" class="px-3 py-1.5 rounded-lg text-xs font-bold '+(st==='over'?'bg-red-600 alertr':'bg-sky-600 hover:bg-sky-500')+'"> 🧪 OD</button>';
+  if(st==='indc') b+='<button onclick="openFor('+L+',\'induce\')" class="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-xs font-bold alertg">✔ IPTG '+n2(iptgUlFor(fl))+' µL</button>';
+  if(st==='harv') b+='<button onclick="openFor('+L+',\'harvest\')" class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-xs font-bold alertr">✔ '+tx('yig\'ildi','harvested')+'</button>';
+  b+='<button onclick="modalFix(\''+fl.label+'\')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" title="to\'g"riltish">✎</button>';
+  b+='<button onclick="selLab(\''+fl.label+'\');go(\'chart\')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs">📈</button>';
+  return b; }
+function selLab(l){ S.selLab=l; save(); }
+let lastAlertKey='';
+function stripKey(){ return alerts().map(a=>a.id+a.lvl).join(','); }
+function stripHtml(){ const al=alerts(); if(!al.length) return '';
+  const w={crit:0,warn:1,info:2};
+  return '<div class="mb-4 flex flex-wrap gap-2">'+al.sort((x,y)=>w[x.lvl]-w[y.lvl]).map(a=>alertPill(a)).join('')+'</div>'; }
+let alertKey='';
+function alertPill(a){ const cls={crit:'bg-red-950/80 border-red-500 text-red-200', warn:'bg-yellow-950/70 border-yellow-600 text-yellow-200', info:'bg-slate-800 border-slate-600 text-slate-300'}[a.lvl];
+  return '<div class="rounded-xl border px-3 py-1.5 text-[11px] flex items-center gap-1 flex-wrap '+cls+'"><b>'+a.fl.label+'</b> '+a.text+
+   '<button onclick="dismissAlert(\''+a.id+'\',event)" class="ml-1 text-slate-400 hover:text-white">✕</button></div>'; }
+function dismissAlert(id,ev){ ev.stopPropagation(); S.dismissed[id]=true; save(); render(); }
+
+/* ---- QADAMLAR (wizard, sodda) ---- */
+function renderSteps(){
+  let s='<div class="space-y-4 fadein">';
+  s+='<div id="alertStrip">'+stripHtml()+'</div>';
+  // 1: xarita
+  s+='<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><div class="flex items-center flex-wrap gap-2 justify-between">'+
+    '<h2 class="font-bold flex items-center gap-2"><span class="stepnum">1</span> '+t('s1')+'</h2>'+
+    '<button onclick="if(confirm(\'Men uchun aralashtiraymi?\'))randomizeNow()" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs">🎲 '+tx('aralashtir','shuffle')+'</button></div>'+
+    '<p class="text-[11px] text-slate-400 mt-1 mb-2">'+t('s1_hint')+'</p>'+
+    '<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">'+
+    S.flasks.map(fl=>{ const m=M(fl); const locked=fl.step!=='prep';
+      return '<div class="rounded-xl border border-slate-700 p-2 text-xs '+(locked?'bg-slate-900/50':'bg-slate-800/70')+'">'+
+       '<span class="inline-block px-1.5 rounded font-bold mr-1" style="background:'+(BCOLORS[fl.batch]||'#0f172a')+'">'+fl.label+'</span>'+
+       '<select '+(locked?'disabled':'')+' onchange="assignRun(\''+fl.label+'\',this.value)" class="bg-slate-900 border border-cyan-700 rounded-lg px-1 py-0.5 text-cyan-300 font-bold">'+
+         Array.from({length:12},(_,i)=>'<option value="'+(i+1)+'" '+(fl.run===i+1?'selected':'')+'>'+tx('run','run')+' '+(i+1)+'</option>').join('')+'</select> '+
+       '<span class="block mt-1"><span class="inline-block px-1.5 rounded '+(m.temp>=30?'bg-red-900/80 text-red-300':'bg-blue-900/80 text-blue-300')+' font-bold">'+m.temp+'°C</span> <span class="text-slate-400">ifoda</span> <span class="text-slate-400">· OD '+m.od+' @37°C ≈'+estGrowthH(m.od)+'h → IPTG '+m.iptg+' → +'+postIndH(m.temp)+'h</span></span></div>'; }).join('')+
+    '</div></div>';
+  // 🌡 harorat guruhlari (2 incubator)
+  s+='<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">'+
+   [[37,'text-red-300','bg-red-900/60 border-red-700','🔥 37°C ifoda'],[20,'text-blue-300','bg-blue-900/60 border-blue-700','❄️ 20°C ifoda']].map(([tg,txt,bgc,ttl])=>{
+    const g=S.flasks.filter(f2=>M(f2).temp===tg);
+    return '<div class="flex flex-wrap items-center gap-2 mt-2"><div class="text-sm font-bold '+txt+' w-32">'+ttl+' <span class="text-[11px] text-slate-400">('+g.length+' '+postIndH(tg)+'h)</span></div>'+
+     g.map(f2=>'<span class="px-2 py-0.5 rounded-lg text-[11px] font-bold '+bgc+' border">'+f2.label+'·r'+f2.run+'</span>').join('')+'</div>';
+   }).join('')+'<p class="text-[10px] text-amber-300 mt-2">'+tx('⚠ Eslatma: IPTG gacha BARCHA kolbalar 37°C da o\'sadi. Bu guruhlar faqat IPTG dan keyingi IFODA harorati (12h @20°C / 4h @37°C).','Note: ALL flasks grow at 37°C before IPTG. These groups are the post-IPTG EXPRESSION temperature (12h @20°C / 4h @37°C).')+'</p></div>';
+  // 2: batchlar
+  s+='<h2 class="font-bold flex items-center gap-2"><span class="stepnum">2</span> '+t('s2')+'</h2>'+
+   '<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">';
+  for(let b=1;b<=4;b++){ const fls=S.flasks.filter(x=>x.batch===b); const todo=fls.filter(x=>x.step==='prep').length;
+    s+='<div class="rounded-2xl border p-3 bg-slate-900/80" style="border-top:3px solid '+(BCOLORS[b]||'#334155')+'">'+
+     '<div class="font-bold text-sm mb-2">Batch '+b+(todo?'':' ✓')+'</div>'+
+     '<table class="w-full text-[11px] tnum">'+fls.map(fl=>{ const r=recipe(fl);
+       return '<tr class="border-t border-slate-800"><td class="py-1 pr-1 font-bold">'+fl.label+' <span class="text-slate-500 font-normal">r'+fl.run+'</span></td>'+
+       '<td class="py-1 text-slate-300">'+r.base+' + '+[r.Gly?r.Gly+' Gly':'',r.Mg?r.Mg+' Mg':'',r.Water?r.Water+' H₂O':''].filter(z=>z).join(' + ')+(r.Amp?' + '+r.Amp+' Amp':'')+' µL</td></tr>'; }).join('')+'</table>'+
+     (todo?'<button onclick="confPrep('+b+')" class="mt-2 w-full px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-extrabold">'+t('prep_btn')+'</button>':'')+
+    '</div>'; }
+  s+='</div>';
+  // 3: o'sish
+  const grow=S.flasks.filter(x=>x.step==='growth');
+  s+='<h2 class="font-bold flex items-center gap-2"><span class="stepnum">3</span> '+t('s3')+'</h2>';
+  s+= grow.length? '<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">'+
+    grow.map(fl=>{ const st=status(fl); const hot=(st==='warn'||st==='over'||st==='indc');
+      return '<div class="fcard rounded-2xl border p-3 flex items-center gap-3 '+(st==='over'?'border-red-500 alertr':hot?'border-yellow-500 bg-yellow-950/20':st==='indc'?'border-green-500 alertg':'border-slate-700')+' bg-slate-900/80">'+
+       flaskSVG(fl,50)+'<div class="flex-1 min-w-0 text-xs">'+
+       '<div class="flex justify-between gap-1"><b class="text-sm">'+fl.label+' <span class="text-slate-400 font-normal">run '+fl.run+'</span></b>'+stBadge(st)+'</div>'+
+       '<div class="text-slate-400"><span class="inline-block px-1 rounded '+(M(fl).temp>=30?'bg-red-900/80 text-red-300':'bg-blue-900/80 text-blue-300')+' font-bold">'+M(fl).temp+'°C</span> <span class="opacity-60">ifoda</span> OD '+M(fl).od+' @37°C ≈'+estGrowthH(M(fl).od)+'h → IPTG → +'+postIndH(M(fl).temp)+'h</div>'+
+       '<div class="mt-0.5" data-live="'+fl.label+'">'+liveInfo(fl)+'</div>'+
+       '<div class="mt-1.5">'+quickBtns(fl)+'</div></div></div>'; }).join('')+'</div>'
+    : '<p class="text-xs text-slate-500">'+t('empty_grow')+'</p>';
+  // 4: IPTG navbati
+  const ind=S.flasks.filter(x=>x.step==='growth'&&ozdReached(x));
+  s+='<h2 class="font-bold flex items-center gap-2"><span class="stepnum">4</span> '+t('s4')+'</h2>';
+  s+= ind.length? '<div class="grid grid-cols-1 md:grid-cols-3 gap-3">'+ind.map(fl=>{ const m=M(fl);
+    return '<div class="fcard rounded-2xl border-2 border-green-500 bg-green-950/20 p-3 alertg flex justify-between items-center text-xs">'+
+     '<div><b class="text-sm">'+fl.label+'</b> (run '+fl.run+'): <b class="text-green-300 text-lg">'+n2(iptgUlFor(fl))+' µL</b> IPTG → '+postIndH(m.temp)+'h @ '+m.temp+'°C</div>'+
+     '<button onclick="openFor(\''+fl.label+'\',\'induce\')" class="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 font-bold">✔</button></div>'; }).join('')+'</div>'
+    : '<p class="text-xs text-slate-500">'+t('empty_induce')+'</p>';
+  // 5: harvest
+  const expr=S.flasks.filter(x=>x.step==='induced');
+  s+='<h2 class="font-bold flex items-center gap-2"><span class="stepnum">5</span> '+t('s5')+'</h2>';
+  s+= expr.length? '<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">'+expr.map(fl=>{ const st=status(fl); const dn=fl.incubEnds<=now();
+     return '<div class="fcard rounded-2xl border-2 p-3 text-xs '+(dn?'border-orange-500 bg-orange-950/20 alertr':'border-violet-700 bg-slate-900/80')+'">'+
+     '<div class="flex justify-between items-center"><b class="text-sm">'+fl.label+'</b>'+stBadge(st)+'</div>'+
+     '<div class="mt-0.5" data-live="'+fl.label+'">'+liveInfo(fl)+'</div>'+
+     '<div class="mt-1.5">'+quickBtns(fl)+'</div></div>'; }).join('')+'</div>'
+    : '<p class="text-xs text-slate-500">'+t('empty_harv')+'</p>';
+  s+='</div>';
+  $('#view').innerHTML=s;
+}
+
+/* ---- KOLBALAR ---- */
+function renderFlasks(){
+  let s='<div class="fadein"><div id="alertStrip">'+stripHtml()+'</div>'+
+   '<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-3">'+
+  S.flasks.map(fl=>{ const st=status(fl), m=M(fl);
+    const bd=st==='over'?'border-red-500 alertr':(st==='harv'||st==='indc')?'border-green-500 alertg':st==='warn'?'border-yellow-500':'border-slate-700';
+    return '<div class="fcard rounded-2xl border-2 '+bd+' bg-slate-900/80 p-3 flex flex-col gap-1.5">'+
+     '<div class="flex items-center justify-between gap-1"><div class="font-bold"><span class="inline-block px-1.5 rounded" style="background:'+(BCOLORS[fl.batch]||'#0f172a')+'">'+fl.label+'</span> <span class="text-[10px] font-normal text-slate-400">run '+fl.run+'</span></div>'+stBadge(st)+'</div>'+
+     '<div class="flex justify-center">'+flaskSVG(fl,70)+'</div>'+
+     '<div class="text-[11px] text-slate-400">run '+fl.run+' · <b class="'+(m.temp>=30?'text-red-300':'text-blue-300')+'">'+m.temp+'°C</b> · OD→'+m.od+' · IPTG '+m.iptg+' mM</div>'+
+     '<div class="text-[11px] tnum">'+fl.totalVol+' µL'+
+        (fl.step!=='prep'? ' · IPTG '+n2(iptgMmNow(fl))+' mM':'')+'</div>'+
+     '<div class="text-[11px]" data-live="'+fl.label+'">'+liveInfo(fl)+'</div>'+
+     '<div class="flex flex-wrap gap-1.5">'+quickBtns(fl)+'</div></div>'; }).join('')+'</div></div>';
+  $('#view').innerHTML=s;
+}
+
+/* ---- GRAFIK ---- */
+let odChart=null, fxChart=null;
+function renderChart(){ const lab=S.selLab||'A'; const fl=fL(lab); if(!fl) return;
+  const m=M(fl);
+  const chips='<div class="flex flex-wrap gap-1.5 mb-3">'+S.flasks.map(x=>'<button onclick="selLab(\''+x.label+'\');save();render()" class="px-2.5 py-1 rounded-lg text-xs font-bold '+(x.label===lab?'bg-cyan-500 text-slate-950':'bg-slate-800 border border-slate-600')+'">'+x.label+'</button>').join('')+'</div>';
+  const odRows=fl.ods.map(o=>'<tr class="border-t border-slate-800"><td class="px-2 py-1 tnum text-xs">'+n2((o.ts-fl.startTs)/3.6e6)+'h</td><td class="px-2 py-1 tnum text-xs">'+o.od+(o.dil>1?'×'+o.dil+'='+n2(effOd(o)):'')+'</td><td class="px-2 py-1 text-xs text-slate-500">'+new Date(o.ts).toLocaleTimeString()+'</td></tr>').join('');
+  const logRows=fl.log.map(e=>'<li class="text-[11px] border-l-2 border-cyan-700 pl-2 py-0.5"><span class="text-slate-500">'+new Date(e.ts).toLocaleTimeString()+'</span> — '+esc(e.text)+'</li>').join('');
+  $('#view').innerHTML='<div class="fadein">'+chips+
+   '<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">'+
+   '<div class="lg:col-span-2 space-y-4">'+
+    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><div class="flex justify-between items-center mb-2"><h2 class="font-bold">📈 '+t('chart_title')+' — '+lab+'</h2>'+stBadge(status(fl))+'</div>'+
+    '<div class="h-72"><canvas id="odChart"></canvas></div></div>'+
+    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">OD</h3><table class="w-full">'+(odRows||'<tr><td class="text-xs text-slate-500">—</td></tr>')+'</table></div>'+
+   '</div>'+
+   '<div class="space-y-4">'+
+    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 flex gap-3">'+flaskSVG(fl,100)+
+     '<div class="text-xs space-y-2 flex-1"><div data-live="'+fl.label+'">'+liveInfo(fl)+'</div>'+
+     '<div class="text-slate-400">'+fl.totalVol+' µL · '+M(fl).temp+'°C · → OD '+m.od+'</div>'+
+     '<div class="flex flex-wrap gap-1.5">'+quickBtns(fl)+'</div></div></div>'+
+    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">🧾 '+t('log_title')+'</h3><ul class="space-y-1 max-h-72 overflow-y-auto">'+(logRows||'<li class="text-xs text-slate-500">—</li>')+'</ul></div>'+
+   '</div></div></div>';
+  drawOd(fl,m);
+}
+function drawOd(fl,m){ if(typeof Chart==='undefined') return; const el=$('#odChart'); if(!el) return;
+  if(odChart){odChart.destroy();odChart=null;}
+  const pts=fl.startTs? fl.ods.map(o=>({x:(o.ts-fl.startTs)/3.6e6,y:effOd(o)})):[];
+  const mu=growRate(fl); let pred=[];
+  if(pts.length){ const p0=pts[0], tEnd=(now()-fl.startTs)/3.6e6+2;
+    const tTar=p0.x+Math.log(m.od/p0.y)/mu; const tMax=Math.max(tEnd,tTar+1);
+    for(let tt=p0.x; tt<=tMax; tt+=Math.max(0.1,(tMax-p0.x)/40)) pred.push({x:tt,y:Math.min(p0.y*Math.exp(mu*(tt-p0.x)),m.od*1.15)}); }
+  odChart=new Chart(el,{data:{datasets:[
+    {type:'line',label:'OD',data:pts,showLine:true,borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.2)',pointRadius:5,tension:.25,fill:true},
+    {type:'line',label:tx('prognoz','prediction'),data:pred,borderColor:'#94a3b8',borderDash:[5,5],pointRadius:0},
+    {type:'line',label:tx('maqsad','target')+' '+m.od,data:[{x:0,y:m.od},{x:m.expH+4,y:m.od}],borderColor:'#4ade80',borderDash:[8,6],pointRadius:0},
+    {type:'line',label:tx('reader limiti','reader limit'),data:[{x:0,y:S.settings.readerMaxOd},{x:m.expH+4,y:S.settings.readerMaxOd}],borderColor:'#ef4444',borderDash:[2,5],pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+     scales:{x:{type:'linear',title:{display:true,text:'h'},ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{beginAtZero:true,suggestedMax:1.5,ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},
+     plugins:{legend:{labels:{color:'#cbd5e1',boxWidth:12}}}}});
+}
+
+/* ---- TA'SIRLAR ---- */
+function renderFx(){ const inp=S.flasks.map(fl=>{ const m=M(fl);
+    return '<tr class="border-t border-slate-800"><td class="px-2 py-1 font-bold">'+fl.label+'</td>'+
+    '<td class="px-2 py-1 text-slate-400 text-[11px]">'+m.gly+'%/'+m.iptg+'mM/'+m.temp+'°/'+m.expH+'h/OD'+m.od+'/'+m.mg+'Mg</td>'+
+    '<td class="px-2 py-1">'+stBadge(status(fl))+'</td>'+
+    '<td class="px-2 py-1"><input onchange="setResp('+fl.run+',this.value)" class="w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 tnum" type="number" step="any" value="'+(fl.response??'')+'"></td></tr>'; }).join('');
+  const n=S.flasks.filter(x=>x.response!=null&&x.response!=='').length;
+  const rows=[]; FACTORS.forEach(fc=>{ const hi=[],lo=[];
+    S.flasks.forEach(fl=>{ const v=fl.response; if(v==''||v==null)return; const num=parseFloat(v); if(isNaN(num))return;
+      const m=DESIGN[fl.run-1]; (m[fc.key]===fc.hi?hi:lo).push(num); });
+    if(hi.length&&lo.length) rows.push({label:(S.lang==='en'?fc.labelEn:fc.labelUz)+' ('+fc.hi+'−'+fc.lo+')', e:hi.reduce((a,b)=>a+b,0)/hi.length-lo.reduce((a,b)=>a+b,0)/lo.length, n:hi.length+lo.length}); });
+  rows.sort((a,b)=>Math.abs(b.e)-Math.abs(a.e));
+  $('#view').innerHTML='<div class="max-w-4xl mx-auto space-y-4 fadein">'+
+   '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h2 class="font-bold mb-1">📊 '+tx('Qaysi faktor muhim? Faktor ta\'siri = (yuqori o\'rtacha) − (past o\'rtacha).','Which factors matter? Effect = mean(high) − mean(low).')+'</h2>'+
+   '<p class="text-xs text-slate-400 mb-2">'+tx('Har yig\'ilgan kolbaga bitta natija kiriting (ball 0–100 yoki mg/L). '+n+'/12 kiritilgan. Ishonchli xulosa uchun 12/12 bo\'lishi kerak.','Enter one response per harvested flask (score 0–100 or mg/L). '+n+'/12 entered. All 12 needed for solid conclusions.')+'</p>'+
+   (rows.length?'<table class="w-full text-xs tnum"><tr class="text-left text-slate-400"><th class="px-2 py-1">'+tx('Faktor','Factor')+'</th><th class="px-2 py-1">'+tx('Ta\'sir','Effect')+'</th></tr>'+
+    rows.map(r=>'<tr class="border-t border-slate-800"><td class="px-2 py-1">'+r.label+'</td><td class="px-2 py-1"><b class="'+(r.e>0?'text-green-400':'text-red-400')+'">'+(r.e>=0?'+':'')+n2(r.e)+'</b></td></tr>').join('')+'</table>'
+    :'<p class="text-xs text-slate-500">…</p>')+
+   '<div class="h-64 mt-3"><canvas id="fxChart"></canvas></div></div>'+
+   '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">'+t('resp_lbl')+'</h3>'+
+   '<table class="w-full text-xs"><tr class="text-left text-slate-400"><th class="px-2 py-1">'+tx('Kolba','Flask')+'</th><th class="px-2 py-1">'+tx('Dizayn','Design')+'</th><th class="px-2 py-1">'+tx('Holat','Status')+'</th><th class="px-2 py-1">'+t('resp_lbl')+'</th></tr>'+inp+'</table></div></div>';
+  const el=$('#fxChart'); if(el&&typeof Chart!=='undefined'&&rows.length){
+    if(fxChart){fxChart.destroy();fxChart=null;}
+    fxChart=new Chart(el,{type:'bar',data:{labels:rows.map(r=>r.label),datasets:[{data:rows.map(r=>+n2(r.e)),backgroundColor:rows.map(r=>r.e>0?'rgba(74,222,128,.8)':'rgba(239,68,68,.8)')}]},
+     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b'}}}}});
+  }
+}
+function setResp(runN,v){ fR(runN).response=v===''?null:parseFloat(v); save();
+  const c=document.getElementById('respCount'); if(c) c.textContent=n2(0); render(); }
+
+/* ---- SOZLAMALAR ---- */
+function renderSet(){
+  const st=S.settings;
+  const rows=S.globalLog.slice().reverse().slice(0,50).map(e=>'<tr class="border-t border-slate-800"><td class="px-2 py-1 text-[11px] text-slate-500 tnum">'+new Date(e.ts).toLocaleTimeString()+'</td>'+
+   '<td class="px-2 py-1 text-xs">'+(e.label?'<b>'+e.label+'</b> ':'')+esc(e.text)+'</td></tr>').join('');
+  $('#view').innerHTML='<div class="max-w-2xl mx-auto space-y-4 fadein">'+
+   '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 space-y-3">'+
+    '<h2 class="font-bold">⚙ '+t('set_stocks')+'</h2>'+
+    '<div class="grid grid-cols-2 gap-2 text-sm">'+Object.keys(SUBSTANCES).map(k=>{
+      const s2=SUBSTANCES[k];
+      return '<label class="rounded-xl bg-slate-800/60 border border-slate-700 p-2 block text-xs">'+(S.lang==='en'?s2.nameEn:s2.nameUz)+' ('+s2.unit+')'+
+      '<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-stk="'+k+'" type="number" value="'+(S.stocks[k]?S.stocks[k].c:s2.def)+'"></label>'; }).join('')+'</div>'+
+    '<h3 class="font-bold pt-1">'+t('set_proto')+'</h3>'+
+    '<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">'+
+     '<label>'+t('base_vol')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="baseUl" type="number" value="'+st.baseUl+'"></label>'+
+     '<label>'+t('inoc_set')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="inocUl" type="number" value="'+st.inocUl+'"></label>'+
+     '<label>'+t('odS_set')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="odSampleUl" type="number" value="'+st.odSampleUl+'"></label>'+
+     '<label>'+t('amp_ul')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="ampUl" type="number" value="'+st.ampUl+'"></label>'+
+     '<label>'+t('reader')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="readerMaxOd" type="number" step="any" value="'+st.readerMaxOd+'"></label>'+
+     '<label class="flex items-center gap-2 pt-4">'+t('weq_set')+'<input class="inv-in w-4 h-4" data-set="equalizeWater" type="checkbox" '+(st.equalizeWater?'checked':'')+'></label>'+
+     '<label>'+t('pi37')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="pi37" type="number" value="'+postIndH(37)+'"></label>'+
+     '<label>'+t('pi20')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="pi20" type="number" value="'+postIndH(20)+'"></label>'+
+    '</div>'+
+    '<button onclick="saveInv()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold">'+t('save')+'</button>'+
+   '</div>'+
+   '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 space-y-2">'+
+    '<div class="flex flex-wrap gap-2">'+
+    '<button onclick="exportJson()" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs">'+t('export')+'</button>'+
+    '<label class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs cursor-pointer">'+t('imp')+'<input type="file" accept=".json" class="hidden" onchange="importJson(this)"></label>'+
+    '<button onclick="resetAll()" class="px-3 py-2 rounded-xl bg-red-900 border border-red-600 hover:bg-red-800 text-xs">'+t('reset')+'</button></div>'+
+    '<p class="text-[11px] text-slate-400">'+tx('Har amaldan keyin brauzerda avtomatik saqlanadi. Brauzer tozalanishidan oldin zaxira oling.','Autosaves to browser after every action. Export before clearing browser data.')+'</p></div>'+
+   '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">🧾 '+t('log_title')+'</h3><table class="w-full">'+(rows||'')+'</table></div>'+
+   '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">📐 PB12 jadvali ('+tx('tizimda aynan shunday — 6 yuqori / 6 past, balanslangan','stored exactly as given — balanced 6 high / 6 low')+')</h3>'+
+    '<table class="w-full text-[11px] tnum"><tr class="text-slate-400 text-left"><th class="px-1 py-1">run</th><th class="px-1 py-1">gly%</th><th class="px-1 py-1">P</th><th class="px-1 py-1">IPTG</th><th class="px-1 py-1">degC</th><th class="px-1 py-1">jadval·h</th><th class="px-1 py-1">OD</th><th class="px-1 py-1">Mg</th><th class="px-1 py-1">YE</th><th class="px-1 py-1">+IPTG</th></tr>'+
+    DESIGN.map(md=>'<tr class="border-t border-slate-800"><td class="px-1 py-1">'+md.run+'</td><td class="px-1 py-1">'+md.gly+'</td><td class="px-1 py-1">'+md.phos+'</td><td class="px-1 py-1">'+md.iptg+'</td><td class="px-1 py-1 '+(md.temp>=30?'text-red-300 font-bold':'text-blue-300 font-bold')+'">'+md.temp+'</td><td class="px-1 py-1">'+md.expH+'</td><td class="px-1 py-1">'+md.od+'</td><td class="px-1 py-1">'+md.mg+'</td><td class="px-1 py-1">'+md.ye+'</td><td class="px-1 py-1">'+postIndH(md.temp)+'h</td></tr>').join('')+'</table></div>'+
+    '<div class="text-[10px] text-amber-300 mt-1">'+tx('⚠ jadval·h = IPTG dan keyingi ifoda vaqti (qo\'lyozmadan). 24h uzoq → amalda 12h @20°C / 4h @37°C. OD ga yetish vaqti esa MODEL BASHORATI (2+ o\'lchovdan keyin aniqroq).','table·h = post-IPTG expression time (from notes). 24h is long → practice: 12h @20°C / 4h @37°C. Time-to-OD is a model estimate (better after 2+ readings).')+'</div>'+
+   '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">🗺 '+t('map_title')+'</h3>'+
+    '<div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mome text-xs">'+
+    mediaTypes().map((g,i)=>'<div class="rounded-xl border border-slate-700 p-2">M'+(i+1)+': '+g.phos+' mM P · '+g.ye+' g/L YE<br><span class="text-slate-400">'+g.flasks.map(f2=>f2.label).join(', ')+'</span></div>').join('')+
+    '</div></div>'+
+   '</div>';
+}
+function saveInv(){ document.querySelectorAll('.inv-in').forEach(el=>{
+    const stk=el.getAttribute('data-stk'); const k=el.getAttribute('data-set');
+    if(k==='equalizeWater'){ S.settings.equalizeWater=el.checked; return; }
+    const v=parseFloat(el.value); if(isNaN(v)) return;
+    if(stk) S.stocks[stk].c=v;
+    else if(k==='pi37') S.settings.postInd[37]=v;
+    else if(k==='pi20') S.settings.postInd[20]=v;
+    else S.settings[k]=v; });
+  save(); toast('💾 '+tx('Saqlandi','Saved')); render(); }
+function exportJson(){ const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='ventlab-v3.json'; a.click(); }
+function importJson(inp){ const f=inp.files[0]; if(!f)return; const r=new FileReader();
+  r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.flasks||s.version!==3) throw 0; S=s; save(); toast('✅'); render(); }catch(e){ toast('⚠','bg-red-900'); } }; r.readAsText(f); }
+function resetAll(){ if(confirm(tx('HAMMASI o\'chiriladi. Ishonchingiz komilmi?','Delete EVERYTHING. Sure?'))&&confirm(tx('Bildim-aytdim?','Really?'))){ localStorage.removeItem(LS); S=defaultState(); initFlasks(DESIGN.map(d=>d.run)); save(); render(); } }
+
+/* ---- REJIMLAR: theme / sound / confetti ---- */
+function applyTheme(){ const names=['','night','neon']; document.body.className='bg-slate-950 text-slate-100 min-h-screen '+(names[S.settings.theme||0]||'');
+  const b=document.getElementById('themeBtn'); if(b){ b.innerHTML=['🎨 kunduz','🌙 tun','⚡ neon'][(S.settings.theme||0)%3]; } }
+function toggleTheme(){ S.settings.theme=((S.settings.theme||0)+1)%3; save(); applyTheme(); }
+function toggleSound(){ S.settings.sound=!S.settings.sound; save(); applySound(); }
+function applySound(){ const b=document.getElementById('soundBtn'); if(b){ b.innerHTML=S.settings.sound?'🔊':'🔇'; } }
+function beep(freq,dur,vol){ if(!S.settings.sound) return; try{ beep.ctx=beep.ctx||new (window.AudioContext||window.webkitAudioContext)();
+  const o=beep.ctx.createOscillator(), g=beep.ctx.createGain(); o.frequency.value=freq; o.type='sine';
+  g.gain.value=vol||0.04; o.connect(g); g.connect(beep.ctx.destination); o.start(); setTimeout(()=>{o.stop();},dur||180); }catch(e){} }
+function critBeep(){ beep(880,160); setTimeout(()=>beep(660,200),200); }
+function confetti(){ const colors=['#22d3ee','#4ade80','#f472b6','#facc15','#a78bfa'];
+  for(let i=0;i<28;i++){ const c=document.createElement('span'); c.className='confetti';
+    c.style.left=(Math.random()*100)+'vw'; c.style.background=colors[i%5];
+    c.style.width=c.style.height=(5+Math.random()*7)+'px'; c.style.borderRadius=Math.random()>0.5?'50%':'2px';
+    c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; document.body.appendChild(c); setTimeout(()=>c.remove(),3200); } }
+/* ---- YUQORI PANEL / TICK ---- */
+function updateTop(){ const es=S.flasks.filter(x=>x.startTs); const t0=es.length?Math.min(...es.map(x=>x.startTs)):null;
+  $('#gElapsed').innerHTML=t0?hms(now()-t0):'—';
+  const hr=new Date().getHours(); const dn=$('#dnIcon'); if(dn) dn.innerHTML=(hr>=6&&hr<19)?'☀️':'🌙'; }
+let lastST=null;
+function tick(){ updateTop();
+  if(modalOpen) return;
+  const ae=document.activeElement;
+  if(ae&&(ae.tagName==='INPUT'||ae.tagName==='SELECT')) return;
+  document.querySelectorAll('[data-live]').forEach(el=>{ const fl=fL(el.getAttribute('data-live')); if(fl) el.innerHTML=liveInfo(fl); });
+  const strip=$('#alertStrip');
+  if(strip){ const k=stripKey(); if(k!==lastAlertKey){ const before=(S.alertCritCount||0); const cr=alerts().filter(a=>a.lvl==='crit').length;
+     strip.innerHTML=stripHtml(); lastAlertKey=k; S.alertCritCount=cr; if(cr>before) critBeep(); } }
+  let dirty=false;
+  S.flasks.forEach(fl=>{ const st=status(fl); if(lastST[fl.label]!==st) dirty=true; });
+  if(dirty) render();
+}
+function destroy(){ if(odChart){odChart.destroy();odChart=null;} if(fxChart){fxChart.destroy();fxChart=null;} }
+function render(){ destroy();
+  lastST={}; S.flasks.forEach(fl=>lastST[fl.label]=status(fl));
+  renderNav(); updateLangBtn();
+  if(S.view==='steps') renderSteps();
+  else if(S.view==='flasks') renderFlasks();
+  else if(S.view==='chart') renderChart();
+  else if(S.view==='fx') renderFx();
+  else if(S.view==='set') renderSet();
+  updateTop(); }
+
+/* ---- INIT ---- */
+lastST={}; S.flasks.forEach(fl=>lastST[fl.label]=status(fl));
+applyTheme(); applySound();
+render();
+setInterval(tick,1000);
+console.log('VentLab OS v3 ready.');
+
+</script>
+</body>
+</html>
