@@ -102,7 +102,7 @@
       <button id="nextBtn" onclick="doNext()" class="lbtn px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold shadow-lg shadow-emerald-900/40">NEXT ▶</button>
     </div>
     <nav class="ml-auto flex flex-wrap gap-1 text-sm" id="navTabs"></nav>
-    <div class="flex gap-1"><button onclick="cloudModal()" id="cloudBtn" title="Bulut sinxronizatsiya" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs">☁️</button><button onclick="toggleTheme()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" id="themeBtn" title="rejim">🎨</button><button onclick="toggleSound()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" id="soundBtn" title="ovoz">🔇</button><button onclick="toggleLang()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs font-bold" id="langBtn">🌐</button></div>
+    <div class="flex gap-1"><button onclick="editModal()" id="lockBtn" title="Tahrir huquqi" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs">🔒</button><button onclick="cloudModal()" id="cloudBtn" title="Bulut sinxronizatsiya" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs">☁️</button><button onclick="toggleTheme()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" id="themeBtn" title="rejim">🎨</button><button onclick="toggleSound()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" id="soundBtn" title="ovoz">🔇</button><button onclick="toggleLang()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs font-bold" id="langBtn">🌐</button></div>
   </div>
 </header>
 
@@ -253,7 +253,8 @@ let S=(()=>{ try{ const raw=localStorage.getItem(LS);
   if(raw){ const s=JSON.parse(raw); if(s&&s.version===3&&s.settings&&s.flasks&&s.flasks.length===12) return s; } }
   catch(e){} return defaultState(); })();
 mkFlasks();
-function save(){ try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){} cloudSyncSoon(); }
+function save(){ if(!volatileEq()&&!isEd()){ readOnlyBounce(); return; }
+  try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){} cloudSyncSoon(); }
 function toggleLang(){ S.lang=S.lang==='uz'? 'en':'uz'; save(); render(); updateLangBtn(); }
 function updateLangBtn(){ const b=document.getElementById('langBtn'); if(b) b.textContent='🌐 '+(S.lang==='uz'?'UZ':'EN'); }
 
@@ -823,7 +824,7 @@ function render(){ destroy();
   updateTop(); }
 
 /* ---- ☁️ BULUT SINXRONIZATSIYA: Supabase + E2E shifrlash (AES-GCM) ---- */
-const CLOUD={url:'https://ynsfbimxokzncmfaiqhs.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inluc2ZiaW14b2t6bmNtZmFpcWhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NzYzODMsImV4cCI6MjEwNjA1MjM4M30._gN2oMt9zkCbHxBSeM3RvLeJtSKg4oYwJsKzGwzd8Yc',email:'vent@gmail.com'};
+const CLOUD={url:'https://ynsfbimxokzncmfaiqhs.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inluc2ZiaW14b2t6bmNtZmFpcWhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NzYzODMsImV4cCI6MjEwNjA1MjM4M30._gN2oMt9zkCbHxBSeM3RvLeJtSKg4oYwJsKzGwzd8Yc',email:'vent@gmail.com',editcode:'PB12-2026'};
 let SB=null,_ck=null,_ckp='',cloudOn=false,cloudSub=null,cloudDirty=0,cloudTimer=null,cloudErr='',cloudLast=0,cloudWho='';
 function cloudReason(){ if(typeof supabase==='undefined') return 'sdk';
   if(!CLOUD.url||!CLOUD.key||CLOUD.url.indexOf('VASHLOYIHA')>=0||CLOUD.key.indexOf('ANON_KALIT')>=0) return 'cfg';
@@ -847,16 +848,24 @@ function cloudSyncSoon(){ cloudDirty=Date.now(); localStorage.setItem('vl_dirty'
 async function cloudAuth(){ const s=await SB.auth.getSession(); if(s&&s.data&&s.data.session) return true;
   const r=await SB.auth.signInWithPassword({email:CLOUD.email,password:cloudPass()}); return !r.error; }
 function applyRemote(obj){ if(!obj||obj.version!==3||!obj.flasks) return false;
-  S=obj; localStorage.setItem(LS,JSON.stringify(S)); localStorage.removeItem('vl_dirty'); cloudDirty=0;
+  if(obj.view===undefined) obj.view=S.view;
+  if(obj.lang===undefined) obj.lang=S.lang;
+  if(obj.settings){ if(obj.settings.theme===undefined) obj.settings.theme=S.settings.theme;
+    if(obj.settings.sound===undefined) obj.settings.sound=S.settings.sound; }
+  S=obj; S_BASE=JSON.parse(JSON.stringify(S));
+  localStorage.setItem(LS,JSON.stringify(S)); localStorage.removeItem('vl_dirty'); cloudDirty=0;
   applyTheme(); applySound(); render(); return true; }
 async function cloudFetch(){ if(!sbReady()||!await cloudAuth()) return null;
   const r=await SB.from('lab_state').select('*').eq('id',1).maybeSingle(); if(r.error||!r.data) return null; return r.data; }
 async function cloudPush(){ if(!cloudOn||!SB) return;
   try{ cloudErr=''; if(!await cloudAuth()) throw new Error('auth');
-    const box=await cloudEncrypt(JSON.stringify(S)); const ts=Date.now();
+    const doc=JSON.parse(JSON.stringify(S)); delete doc.view; delete doc.lang;
+    if(doc.settings){ delete doc.settings.theme; delete doc.settings.sound; }
+    const box=await cloudEncrypt(JSON.stringify(doc)); const ts=Date.now();
     const r=await SB.from('lab_state').upsert({id:1,data:box.data,iv:box.iv,updated_at:ts,updated_by:cloudName()});
     if(r.error) throw r.error;
-    cloudDirty=0; localStorage.removeItem('vl_dirty'); cloudLast=ts; cloudWho=cloudName(); localStorage.setItem('vl_ever','1'); }
+    cloudDirty=0; localStorage.removeItem('vl_dirty'); cloudLast=ts; cloudWho=cloudName(); localStorage.setItem('vl_ever','1');
+    S_BASE=JSON.parse(JSON.stringify(S)); }
   catch(e){ cloudErr=tx('yozib bolmadi','push failed'); }
   cloudStatus(); }
 async function cloudLoad(){ try{
@@ -875,8 +884,9 @@ function cloudSubscribe(){ if(!SB||cloudSub) return;
         if(cloudName()!==cloudWho) toast("☁️ "+cloudWho+" "+tx("ozgartirdi","updated")); } }
     catch(e){ cloudErr=tx('parol almashgan bolishi mumkin','password may have changed'); cloudStatus(); } }).subscribe(); }
 function cloudStatus(){ const b=$('#cloudBtn'); if(!b) return;
-  const col=!cloudPass()?'opacity-50':(cloudErr?'text-red-400':(cloudDirty?'text-amber-300':'text-emerald-400'));
-  b.innerHTML='<span class="'+col+'">☁️</span>'; b.title=cloudErr||tx('Bulut sinxronizatsiya','Cloud sync'); }
+  b.textContent=!cloudPass()?'☁️':(cloudErr?'🔴':(cloudOn?(cloudDirty?'🟡':'🟢'):'🟠'));
+  b.title=cloudErr||(cloudWho?(cloudWho+' · '+new Date(cloudLast).toLocaleTimeString()):tx('Bulut sinxronizatsiya','Cloud sync'));
+  const lb=$('#lockBtn'); if(lb) lb.textContent=isEd()?'✏️':'🔒'; }
 async function cloudLogin(){ const el=$('#cpass'); const p=el?el.value:''; if(!p) return;
   const nm=$('#cnm'); localStorage.setItem('vl_name',nm?nm.value||'lab':'lab');
   localStorage.setItem('vl_pass',p); _ck=null; _ckp='';
@@ -894,6 +904,30 @@ async function cloudLogin(){ const el=$('#cpass'); const p=el?el.value:''; if(!p
 function cloudLogout(){ cloudOn=false; localStorage.removeItem('vl_pass'); _ck=null; _ckp='';
   if(cloudSub){ cloudSub.unsubscribe(); cloudSub=null; }
   toast(tx('Bulutdan uzildi','disconnected')); cloudStatus(); }
+let S_BASE=null;
+function isEd(){ return localStorage.getItem('vl_edit')==='1'; }
+function stripVol(o){ if(!o) return ''; const c=JSON.parse(JSON.stringify(o));
+  delete c.view; delete c.lang;
+  if(c.settings){ delete c.settings.theme; delete c.settings.sound; }
+  return JSON.stringify(c); }
+function volatileEq(){ return stripVol(S)===stripVol(S_BASE); }
+function readOnlyBounce(){ toast("👁 "+tx("Faqat ko'rish rejimi. O'zgartirish uchun Muxammadsodiqdan kod so'rang","View-only. Ask Muxammadsodiq for the edit code"),'bg-amber-900 border border-amber-500');
+  if(!S_BASE) S_BASE=JSON.parse(JSON.stringify(S));
+  const vw=S.view; S=JSON.parse(JSON.stringify(S_BASE)); S.view=vw; render(); }
+function editModal(){ const ed=isEd();
+  openModal('<h3 class="text-lg font-bold mb-1">'+(ed?'✏️ ':'🔒 ')+tx('Tahrir huquqi','Edit rights')+'</h3>'+
+   (ed
+    ?'<p class="text-xs text-slate-400 mb-3">'+tx("Bu qurilma o'zgartirish qilishi mumkin.","This device can edit.")+'</p>'+
+     '<div class="flex gap-2"><button onclick="doLock()" class="px-4 py-2 rounded-xl bg-red-900 border border-red-600 hover:bg-red-800 text-xs">'+tx("Qulfni qaytarish","Lock again")+'</button>'
+    :'<p class="text-xs text-slate-400 mb-3">'+tx("Ko'ruvchi rejimi: o'zgartirishlar bloklangan. Tahrir kodini Muxammadsodiqdan oling.","View-only mode: edits are blocked. Ask Muxammadsodiq for the edit code.")+'</p>'+
+     '<input id="ecode" type="password" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5" placeholder="tahrir kodi">'+
+     '<div class="flex gap-2 mt-3"><button onclick="doUnlock()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold">'+tx('Ochish','Unlock')+'</button>')+
+   '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600 text-xs">'+tx('Yopish','Close')+'</button></div>');
+  const e=$('#ecode'); if(e) e.focus(); }
+function doUnlock(){ const v=$('#ecode')?$('#ecode').value:'';
+  if(v && v===CLOUD.editcode){ localStorage.setItem('vl_edit','1'); toast(tx('🔓 Tahrir ochildi','Editing unlocked')); closeModal(); cloudStatus(); }
+  else toast(tx('Kod xato','Wrong code'),'bg-red-900'); }
+function doLock(){ localStorage.removeItem('vl_edit'); toast(tx('🔒 Qulflandi','Locked')); closeModal(); }
 function cloudModal(){ const who=cloudWho?(cloudWho+' — '+new Date(cloudLast).toLocaleString()):tx('hali yoq','none yet');
   openModal('<h3 class="text-lg font-bold mb-1">☁️ '+tx('Bulut sinxronizatsiya','Cloud sync')+'</h3>'+
    '<p class="text-xs text-slate-400 mb-3">'+tx("Malumot uchidan-uchiga shifrlanadi (AES-GCM).","Data is encrypted end-to-end (AES-GCM).")+' '+tx('Oxirgi uzgarish:','Last change:')+' '+who+' · server: '+CLOUD.url.replace('https://','').split('.')[0]+'</p>'+
@@ -912,6 +946,7 @@ async function cloudBoot(){ if(!sbReady()||!cloudPass()){ cloudStatus(); return;
 /* ---- INIT ---- */
 lastST={}; S.flasks.forEach(fl=>lastST[fl.label]=status(fl));
 applyTheme(); applySound();
+S_BASE=JSON.parse(JSON.stringify(S));
 render();
 cloudBoot();
 setInterval(tick,1000);

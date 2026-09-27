@@ -14,3 +14,7 @@ create policy "lab_rw_auth" on public.lab_state
   using (true)
   with check (true);
 -- (anon rol uchun hech qanday policy yo'q — faqat login qilganlar ko'radi/yozadi)
+
+-- REAL-TIME kanalga qo'shish (doimiy sinxron uchun SHART):
+alter publication supabase_realtime add table public.lab_state;
+-- (agar "already a member of publication" desa — demak allaqachon qo'shilgan, xato emas)
