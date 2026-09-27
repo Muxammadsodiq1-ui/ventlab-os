@@ -120,24 +120,25 @@ const LS='ventlab_os_v3';
 
 /* ---- PB12 dizayn (qo'lyozmalar, Trial 2) ---- */
 const DESIGN=[
- {run:1, gly:0.8, phos:50, iptg:0.1, temp:37, expH:4,  od:1.2, mg:0,  ye:0},
+ {run:1, gly:0.8, phos:50, iptg:0.1, temp:37, expH:12, od:1.2, mg:0,  ye:0},
  {run:2, gly:0.0, phos:50, iptg:1.0, temp:20, expH:12, od:1.2, mg:10, ye:0},
  {run:3, gly:0.8, phos:0,  iptg:1.0, temp:37, expH:4,  od:1.2, mg:10, ye:10},
- {run:4, gly:0.0, phos:50, iptg:0.1, temp:37, expH:4,  od:0.4, mg:10, ye:10},
+ {run:4, gly:0.0, phos:50, iptg:0.1, temp:37, expH:12, od:0.4, mg:10, ye:10},
  {run:5, gly:0.0, phos:0,  iptg:1.0, temp:20, expH:12, od:1.2, mg:0,  ye:10},
  {run:6, gly:0.0, phos:0,  iptg:0.1, temp:37, expH:4,  od:1.2, mg:10, ye:0},
  {run:7, gly:0.8, phos:0,  iptg:0.1, temp:20, expH:12, od:0.4, mg:10, ye:10},
- {run:8, gly:0.8, phos:50, iptg:0.1, temp:20, expH:12, od:1.2, mg:0,  ye:10},
- {run:9, gly:0.8, phos:50, iptg:1.0, temp:20, expH:12, od:0.4, mg:10, ye:0},
+ {run:8, gly:0.8, phos:50, iptg:0.1, temp:20, expH:4,  od:1.2, mg:0,  ye:10},
+ {run:9, gly:0.8, phos:50, iptg:1.0, temp:20, expH:4,  od:0.4, mg:10, ye:0},
  {run:10,gly:0.0, phos:50, iptg:1.0, temp:37, expH:4,  od:0.4, mg:0,  ye:10},
- {run:11,gly:0.0, phos:0,  iptg:0.1, temp:20, expH:12, od:0.4, mg:0,  ye:0},
- {run:12,gly:0.8, phos:0,  iptg:1.0, temp:37, expH:4,  od:0.4, mg:0,  ye:0},
+ {run:11,gly:0.8, phos:0,  iptg:1.0, temp:37, expH:12, od:0.4, mg:0,  ye:0},
+ {run:12,gly:0.0, phos:0,  iptg:0.1, temp:20, expH:4,  od:0.4, mg:0,  ye:0},
 ];
 const FACTORS=[
  {key:'gly', labelUz:'Glitserin',   labelEn:'Glycerol',       hi:0.8, lo:0.0, unit:'%'},
  {key:'phos',labelUz:'Fosfat (media)',labelEn:'Phosphate (media)',hi:50,lo:0, unit:'mM'},
  {key:'iptg',labelUz:'IPTG',        labelEn:'IPTG',           hi:1.0, lo:0.1, unit:'mM'},
  {key:'temp',labelUz:'Harorat',     labelEn:'Temperature',    hi:37,  lo:20,  unit:'°C'},
+ {key:'expH',labelUz:'Ifoda vaqti (jadval)',labelEn:'Expression time (table)',hi:12, lo:4, unit:'h'},
  {key:'od',  labelUz:'OD600 maqsadi',labelEn:'OD600 target', hi:1.2, lo:0.4,  unit:''},
  {key:'mg',  labelUz:'MgSO4',       labelEn:'MgSO4',          hi:10,  lo:0,   unit:'mM'},
  {key:'ye',  labelUz:'Yeast extract (media)',labelEn:'Yeast extract (media)',hi:10,lo:0,unit:'g/L'},
@@ -265,7 +266,7 @@ function hms(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600)
   return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
 function fL(label){ return S.flasks.find(x=>x.label===label); }
 function fR(runN){ return S.flasks.find(x=>x.run===Number(runN)); }
-function M(fl){ const d=DESIGN[fl.run-1]; return d? Object.assign({},d,{expH:postIndH(d.temp)}) : d; }
+function M(fl){ return DESIGN[fl.run-1]; }
 function sumAdd(fl,sub){ return fl.additions.filter(a=>a.sub===sub).reduce((t,a)=>t+a.ul,0); }
 function lastOd(fl){ return fl.ods.length? fl.ods[fl.ods.length-1]:null; }
 function effOd(o){ return o.od*o.dil; }
@@ -338,8 +339,8 @@ function alerts(){ const out=[];
   S.flasks.forEach(fl=>{ const m=M(fl), st=status(fl);
     const nm='Kolba '+fl.label+' (run '+fl.run+')';
     if(st==='lab')  out.push({id:fl.label+'-p', lvl:'info', fl, text:tx( nm+' bo\'sh — batch '+fl.batch+' ni quyishing kerak ('+m.temp+'°C).', 'Flask '+fl.label+' (run '+fl.run+') empty — prep batch '+fl.batch+' ('+m.temp+'°C).')});
-    if(st==='warn') out.push({id:fl.label+'-m', lvl:'warn', fl, text:tx( nm+': OD o\'lchash vaqti! OD '+m.od+' ≈'+new Date(predictHit(fl)).toLocaleTimeString()+'da ('+(fl.ods.length>=2?'model':'tahminiy')+') → IPTG '+m.iptg+' mM → '+postIndH(m.temp)+'h ifoda @ '+m.temp+'°C.', 'Flask '+fl.label+': measure OD! '+m.od+' ~'+new Date(predictHit(fl)).toLocaleTimeString()+' ('+(fl.ods.length>=2?'model':'estimate')+') → IPTG → '+postIndH(m.temp)+'h expression @ '+m.temp+'C.')});
-    if(st==='indc') out.push({id:fl.label+'-i', lvl:'crit', fl, text:tx( nm+': OD yetdi! Endi ~'+n2(iptgUlFor(fl))+' µL IPTG qo\'shing → '+postIndH(m.temp)+' soat '+m.temp+'°C da.', 'Flask '+fl.label+': OD target reached! Add ~'+n2(iptgUlFor(fl))+' µL IPTG → '+postIndH(m.temp)+' h at '+m.temp+'°C.')});
+    if(st==='warn') out.push({id:fl.label+'-m', lvl:'warn', fl, text:tx( nm+': OD o\'lchash vaqti! OD '+m.od+' ≈'+new Date(predictHit(fl)).toLocaleTimeString()+'da ('+(fl.ods.length>=2?'model':'tahminiy')+') → IPTG '+m.iptg+' mM → '+m.expH+'h ifoda @ '+m.temp+'°C.', 'Flask '+fl.label+': measure OD! '+m.od+' ~'+new Date(predictHit(fl)).toLocaleTimeString()+' ('+(fl.ods.length>=2?'model':'estimate')+') → IPTG → '+m.expH+'h expression @ '+m.temp+'C.')});
+    if(st==='indc') out.push({id:fl.label+'-i', lvl:'crit', fl, text:tx( nm+': OD yetdi! Endi ~'+n2(iptgUlFor(fl))+' µL IPTG qo\'shing → '+m.expH+' soat '+m.temp+'°C da.', 'Flask '+fl.label+': OD target reached! Add ~'+n2(iptgUlFor(fl))+' µL IPTG → '+m.expH+' h at '+m.temp+'°C.')});
     if(st==='harv') out.push({id:fl.label+'-h', lvl:'crit', fl, text:tx( nm+': ifoda tugadi ('+fl.incubH+'h @ '+fl.incubTemp+'°C)! Sentrifuga: 7068\u00d7g \u00b7 20 min.', 'Flask '+fl.label+': incubation done ('+fl.incubH+'h @ '+fl.incubTemp+'°C)! Centrifuge 7068\u00d7g \u00b7 20 min.')});
     if(st==='over') out.push({id:fl.label+'-o', lvl:'crit', fl, text:tx( nm+': KECHIKDINGIZ — hoziq OD o\'lchang! (prognoz '+new Date(predictHit(fl)).toLocaleTimeString()+' edi)', 'Flask '+fl.label+': OVERDUE — measure now! (was predicted '+new Date(predictHit(fl)).toLocaleTimeString()+')')});
   });
@@ -381,7 +382,7 @@ function confPrep(b){
       (r.Water>0?'+ <span class="text-sky-300">'+r.Water+' µL '+t('water_add')+'</span><br>':'')+
       '+ '+r.Amp+' µL '+t('amp_add')+'<br>'+
       '<span class="text-emerald-300">'+t('and_then')+' '+r.inoc+t('inoc_hint')+'</span><br>'+
-      '<span class="text-amber-200">'+tx('Reja: OD '+m.od+' ga o\'sish @37°C taxminan ~'+estGrowthH(m.od)+'h (aniqrog\'i 2 o\'lchovdan keyin) → IPTG → '+postIndH(m.temp)+'h ifoda @ '+m.temp+'°C (jami ≈'+(estGrowthH(m.od)+postIndH(m.temp))+'h)','Plan: grow to OD '+m.od+' @37°C in ~'+estGrowthH(m.od)+'h est. (better after 2 readings) → IPTG → '+postIndH(m.temp)+'h expression @ '+m.temp+'°C (total ≈'+(estGrowthH(m.od)+postIndH(m.temp))+'h)')+'</span>'+
+      '<span class="text-amber-200">'+tx('Reja: OD '+m.od+' ga o\'sish @37°C taxminan ~'+estGrowthH(m.od)+'h (aniqrog\'i 2 o\'lchovdan keyin) → IPTG → '+m.expH+'h ifoda @ '+m.temp+'°C (jami ≈'+(estGrowthH(m.od)+m.expH)+'h)','Plan: grow to OD '+m.od+' @37°C in ~'+estGrowthH(m.od)+'h est. (better after 2 readings) → IPTG → '+m.expH+'h expression @ '+m.temp+'°C (total ≈'+(estGrowthH(m.od)+m.expH)+'h)')+'</span>'+
     '</td></tr>'; }).join('');
   openModal('<h3 class="text-lg font-bold mb-1">Batch '+b+'</h3>'+
    '<p class="text-xs text-slate-400 mb-3">'+tx('Har kolbaga shu tartibda quying. Bacik tasdiqlash uchun bitta tugma — soatlar o\'zi ketadi.','Pipette into each flask in this order. One button confirms all — clocks start automatically.')+'</p>'+
@@ -434,7 +435,7 @@ function doOd(label){ const fl=fL(label), m=M(fl);
   DIL.v=1; closeModal();
 }
 function modalInduce(label){ const fl=fL(label), m=M(fl);
-  const rec=n2(iptgUlFor(fl)); const h=postIndH(m.temp);
+  const rec=n2(iptgUlFor(fl)); const h=m.expH;
   openModal('<h3 class="text-lg font-bold">'+t('induce_title')+' — '+label+' <span class="text-xs text-slate-400">(run '+fl.run+')</span></h3>'+
    '<p class="text-xs text-slate-400 mb-3">'+tx('Hozirgi hajm '+fl.totalVol+' µL, stok '+S.stocks.IPTG.c+' mM → dizayn '+m.iptg+' mM uchun tavsiya: <b>'+rec+' µL</b>. Buni o\'zgartirsangiz bo\'ladi.','Current '+fl.totalVol+' µL, stock '+S.stocks.IPTG.c+' mM, design '+m.iptg+' mM → suggested <b>'+rec+' µL</b>. Edit if needed.')+'</p>'+
    '<div class="space-y-3 text-sm">'+
@@ -449,7 +450,7 @@ function modalInduce(label){ const fl=fL(label), m=M(fl);
 }
 function doInduce(label){ const fl=fL(label), m=M(fl);
   let iu=gval('iu'); if(iu==null) iu=iptgUlFor(fl);
-  let ih=gval('ih'); if(ih==null) ih=postIndH(m.temp);
+  let ih=gval('ih'); if(ih==null) ih=m.expH;
   if(iu<0||ih<=0){ toast(tx('⚠ Qiymatlar noto\'g\'ri','⚠ Invalid values'),'bg-red-900 border border-red-500'); return; }
   fl.additions.push({sub:'IPTG',ul:+iu.toFixed(2),ts:now(),note:'ind'});
   fl.totalVol+=iu;
@@ -613,13 +614,13 @@ function renderSteps(){
        '<span class="inline-block px-1.5 rounded font-bold mr-1" style="background:'+(BCOLORS[fl.batch]||'#0f172a')+'">'+fl.label+'</span>'+
        '<select '+(locked?'disabled':'')+' onchange="assignRun(\''+fl.label+'\',this.value)" class="bg-slate-900 border border-cyan-700 rounded-lg px-1 py-0.5 text-cyan-300 font-bold">'+
          Array.from({length:12},(_,i)=>'<option value="'+(i+1)+'" '+(fl.run===i+1?'selected':'')+'>'+tx('run','run')+' '+(i+1)+'</option>').join('')+'</select> '+
-       '<span class="block mt-1"><span class="inline-block px-1.5 rounded '+(m.temp>=30?'bg-red-900/80 text-red-300':'bg-blue-900/80 text-blue-300')+' font-bold">'+m.temp+'°C</span> <span class="text-slate-400">ifoda</span> <span class="text-slate-400">· OD '+m.od+' @37°C ≈'+estGrowthH(m.od)+'h → IPTG '+m.iptg+' → +'+postIndH(m.temp)+'h</span></span></div>'; }).join('')+
+       '<span class="block mt-1"><span class="inline-block px-1.5 rounded '+(m.temp>=30?'bg-red-900/80 text-red-300':'bg-blue-900/80 text-blue-300')+' font-bold">'+m.temp+'°C</span> <span class="text-slate-400">ifoda</span> <span class="text-slate-400">· OD '+m.od+' @37°C ≈'+estGrowthH(m.od)+'h → IPTG '+m.iptg+' → +'+m.expH+'h</span></span></div>'; }).join('')+
     '</div></div>';
   // 🌡 harorat guruhlari (2 incubator)
   s+='<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">'+
    [[37,'text-red-300','bg-red-900/60 border-red-700','🔥 37°C ifoda'],[20,'text-blue-300','bg-blue-900/60 border-blue-700','❄️ 20°C ifoda']].map(([tg,txt,bgc,ttl])=>{
     const g=S.flasks.filter(f2=>M(f2).temp===tg);
-    return '<div class="flex flex-wrap items-center gap-2 mt-2"><div class="text-sm font-bold '+txt+' w-32">'+ttl+' <span class="text-[11px] text-slate-400">('+g.length+' '+postIndH(tg)+'h)</span></div>'+
+    return '<div class="flex flex-wrap items-center gap-2 mt-2"><div class="text-sm font-bold '+txt+' w-32">'+ttl+' <span class="text-[11px] text-slate-400">('+g.length+' '+tx('kolba','flasks')+')</span></div>'+
      g.map(f2=>'<span class="px-2 py-0.5 rounded-lg text-[11px] font-bold '+bgc+' border">'+f2.label+'·r'+f2.run+'</span>').join('')+'</div>';
    }).join('')+'<p class="text-[10px] text-amber-300 mt-2">'+tx('⚠ Eslatma: IPTG gacha BARCHA kolbalar 37°C da o\'sadi. Bu guruhlar faqat IPTG dan keyingi IFODA harorati (12h @20°C / 4h @37°C).','Note: ALL flasks grow at 37°C before IPTG. These groups are the post-IPTG EXPRESSION temperature (12h @20°C / 4h @37°C).')+'</p></div>';
   // 2: batchlar
@@ -642,7 +643,7 @@ function renderSteps(){
       return '<div class="fcard rounded-2xl border p-3 flex items-center gap-3 '+(st==='over'?'border-red-500 alertr':hot?'border-yellow-500 bg-yellow-950/20':st==='indc'?'border-green-500 alertg':'border-slate-700')+' bg-slate-900/80">'+
        flaskSVG(fl,50)+'<div class="flex-1 min-w-0 text-xs">'+
        '<div class="flex justify-between gap-1"><b class="text-sm">'+fl.label+' <span class="text-slate-400 font-normal">run '+fl.run+'</span></b>'+stBadge(st)+'</div>'+
-       '<div class="text-slate-400"><span class="inline-block px-1 rounded '+(M(fl).temp>=30?'bg-red-900/80 text-red-300':'bg-blue-900/80 text-blue-300')+' font-bold">'+M(fl).temp+'°C</span> <span class="opacity-60">ifoda</span> OD '+M(fl).od+' @37°C ≈'+estGrowthH(M(fl).od)+'h → IPTG → +'+postIndH(M(fl).temp)+'h</div>'+
+       '<div class="text-slate-400"><span class="inline-block px-1 rounded '+(M(fl).temp>=30?'bg-red-900/80 text-red-300':'bg-blue-900/80 text-blue-300')+' font-bold">'+M(fl).temp+'°C</span> <span class="opacity-60">ifoda</span> OD '+M(fl).od+' @37°C ≈'+estGrowthH(M(fl).od)+'h → IPTG → +'+M(fl).expH+'h</div>'+
        '<div class="mt-0.5" data-live="'+fl.label+'">'+liveInfo(fl)+'</div>'+
        '<div class="mt-1.5">'+quickBtns(fl)+'</div></div></div>'; }).join('')+'</div>'
     : '<p class="text-xs text-slate-500">'+t('empty_grow')+'</p>';
@@ -651,7 +652,7 @@ function renderSteps(){
   s+='<h2 class="font-bold flex items-center gap-2"><span class="stepnum">4</span> '+t('s4')+'</h2>';
   s+= ind.length? '<div class="grid grid-cols-1 md:grid-cols-3 gap-3">'+ind.map(fl=>{ const m=M(fl);
     return '<div class="fcard rounded-2xl border-2 border-green-500 bg-green-950/20 p-3 alertg flex justify-between items-center text-xs">'+
-     '<div><b class="text-sm">'+fl.label+'</b> (run '+fl.run+'): <b class="text-green-300 text-lg">'+n2(iptgUlFor(fl))+' µL</b> IPTG → '+postIndH(m.temp)+'h @ '+m.temp+'°C</div>'+
+     '<div><b class="text-sm">'+fl.label+'</b> (run '+fl.run+'): <b class="text-green-300 text-lg">'+n2(iptgUlFor(fl))+' µL</b> IPTG → '+m.expH+'h @ '+m.temp+'°C</div>'+
      '<button onclick="openFor(\''+fl.label+'\',\'induce\')" class="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 font-bold">✔</button></div>'; }).join('')+'</div>'
     : '<p class="text-xs text-slate-500">'+t('empty_induce')+'</p>';
   // 5: harvest
@@ -778,8 +779,6 @@ function renderSet(){
      '<label>'+t('amp_ul')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="ampUl" type="number" value="'+st.ampUl+'"></label>'+
      '<label>'+t('reader')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="readerMaxOd" type="number" step="any" value="'+st.readerMaxOd+'"></label>'+
      '<label class="flex items-center gap-2 pt-4">'+t('weq_set')+'<input class="inv-in w-4 h-4" data-set="equalizeWater" type="checkbox" '+(st.equalizeWater?'checked':'')+'></label>'+
-     '<label>'+t('pi37')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="pi37" type="number" value="'+postIndH(37)+'"></label>'+
-     '<label>'+t('pi20')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="pi20" type="number" value="'+postIndH(20)+'"></label>'+
      '<label>'+tx('Grafik oynasi (h)','Chart window (h)')+'<select class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5" data-set="chartWin">'+[6,12,20,36].map(function(h){return '<option value="'+h+'"'+(h===(S.chartWin||20)?' selected':'')+'>'+h+' h</option>';}).join('')+'</select></label>'+
     '</div>'+
     '<div class="text-xs text-slate-400 pt-2">☁️ '+tx('Bulut','Cloud')+': '+(cloudOn?(tx('ulangan','connected')+' ('+esc(cloudName())+')'+(cloudErr?' ⚠ '+cloudErr:'<span class="text-emerald-400"> ✓</span>')):tx('ulanmagan','off'))+' <button onclick="cloudModal()" class="underline">'+tx('ozgartirish','edit')+'</button></div>'+
@@ -795,7 +794,7 @@ function renderSet(){
    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">📐 PB12 jadvali ('+tx('tizimda aynan shunday — 6 yuqori / 6 past, balanslangan','stored exactly as given — balanced 6 high / 6 low')+')</h3>'+
     '<table class="w-full text-[11px] tnum"><tr class="text-slate-400 text-left"><th class="px-1 py-1">run</th><th class="px-1 py-1">gly%</th><th class="px-1 py-1">P</th><th class="px-1 py-1">IPTG</th><th class="px-1 py-1">degC</th><th class="px-1 py-1">jadval·h</th><th class="px-1 py-1">OD</th><th class="px-1 py-1">Mg</th><th class="px-1 py-1">YE</th></tr>'+
     DESIGN.map(md=>'<tr class="border-t border-slate-800"><td class="px-1 py-1">'+md.run+'</td><td class="px-1 py-1">'+md.gly+'</td><td class="px-1 py-1">'+md.phos+'</td><td class="px-1 py-1">'+md.iptg+'</td><td class="px-1 py-1 '+(md.temp>=30?'text-red-300 font-bold':'text-blue-300 font-bold')+'">'+md.temp+'</td><td class="px-1 py-1">'+md.expH+'</td><td class="px-1 py-1">'+md.od+'</td><td class="px-1 py-1">'+md.mg+'</td><td class="px-1 py-1">'+md.ye+'</td></tr>').join('')+'</table></div>'+
-    '<div class="text-[10px] text-amber-300 mt-1">'+tx('⚠ jadval·h = IPTG dan keyingi ifoda vaqti (qo\'lyozmadan). 24h uzoq → amalda 12h @20°C / 4h @37°C. OD ga yetish vaqti esa MODEL BASHORATI (2+ o\'lchovdan keyin aniqroq).','table·h = post-IPTG expression time (from notes). 24h is long → practice: 12h @20°C / 4h @37°C. Time-to-OD is a model estimate (better after 2+ readings).')+'</div>'+
+    '<div class="text-[10px] text-amber-300 mt-1">'+tx('⚠ jadval·h = IPTG dan keyingi ifoda vaqti: qo\'lyozmada yozilgan 2 va 24 → bizda 4 va 12 deb qabul qilinadi (har run uchun o\'z qiymati, haroratga bog\'liq emas). OD ga yetish vaqti esa MODEL BASHORATI (2+ o\'lchovdan keyin aniqroq).','table·h = post-IPTG expression time (from notes). 24h is long → practice: 12h @20°C / 4h @37°C. Time-to-OD is a model estimate (better after 2+ readings).')+'</div>'+
    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">🗺 '+t('map_title')+'</h3>'+
     '<div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mome text-xs">'+
     mediaTypes().map((g,i)=>'<div class="rounded-xl border border-slate-700 p-2">M'+(i+1)+': '+g.phos+' mM P · '+g.ye+' g/L YE<br><span class="text-slate-400">'+g.flasks.map(f2=>f2.label).join(', ')+'</span></div>').join('')+
@@ -808,8 +807,6 @@ function saveInv(){ document.querySelectorAll('.inv-in').forEach(el=>{
     if(k==='chartWin'){ S.chartWin=parseInt(el.value)||20; return; }
     const v=parseFloat(el.value); if(isNaN(v)) return;
     if(stk) S.stocks[stk].c=v;
-    else if(k==='pi37') S.settings.postInd[37]=v;
-    else if(k==='pi20') S.settings.postInd[20]=v;
     else S.settings[k]=v; });
   save(); toast('💾 '+tx('Saqlandi','Saved')); render(); }
 function exportJson(){ const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
