@@ -857,7 +857,7 @@ function applyRemote(obj){ if(!obj||obj.version!==3||!obj.flasks) return false;
   applyTheme(); applySound(); render(); return true; }
 async function cloudFetch(){ if(!sbReady()||!await cloudAuth()) return null;
   const r=await SB.from('lab_state').select('*').eq('id',1).maybeSingle(); if(r.error||!r.data) return null; return r.data; }
-async function cloudPush(){ if(!cloudOn||!SB) return;
+async function cloudPush(){ if(!cloudOn||!SB||!isEd()) return;
   try{ cloudErr=''; if(!await cloudAuth()) throw new Error('auth');
     const doc=JSON.parse(JSON.stringify(S)); delete doc.view; delete doc.lang;
     if(doc.settings){ delete doc.settings.theme; delete doc.settings.sound; }
@@ -869,9 +869,12 @@ async function cloudPush(){ if(!cloudOn||!SB) return;
   catch(e){ cloudErr=tx('yozib bolmadi','push failed'); }
   cloudStatus(); }
 async function cloudLoad(){ try{
-    const row=await cloudFetch(); if(!row){ cloudErr=cloudErr||tx('bulut bosh','cloud empty'); cloudStatus(); return false; }
+    const row=await cloudFetch();
+    if(!row){ cloudLast=0; cloudWho='';
+      if(cloudOn&&isEd()){ toast(tx('Bulut bo‘sh — bu nusxa yuklanadi','Cloud empty — uploading this copy')); await cloudPush(); return 'seeded'; }
+      cloudStatus(); return false; }
     const obj=JSON.parse(await cloudDecrypt(row)); cloudLast=row.updated_at||0; cloudWho=row.updated_by||'';
-    if(cloudDirty&&cloudDirty>cloudLast){ if(cloudOn) cloudSyncSoon(); return 'local'; }
+    if(cloudDirty&&cloudDirty>cloudLast){ if(cloudOn&&isEd()) cloudSyncSoon(); return 'local'; }
     applyRemote(obj); return 'remote'; }
   catch(e){ cloudErr=tx('parol yoki ulanish xatosi','password or network error'); cloudStatus(); return false; } }
 function cloudSubscribe(){ if(!SB||cloudSub) return;
@@ -887,7 +890,8 @@ function cloudStatus(){ const b=$('#cloudBtn'); if(!b) return;
   b.textContent=!cloudPass()?'☁️':(cloudErr?'🔴':(cloudOn?(cloudDirty?'🟡':'🟢'):'🟠'));
   b.title=cloudErr||(cloudWho?(cloudWho+' · '+new Date(cloudLast).toLocaleTimeString()):tx('Bulut sinxronizatsiya','Cloud sync'));
   const lb=$('#lockBtn'); if(lb) lb.textContent=isEd()?'✏️':'🔒'; }
-async function cloudLogin(){ const el=$('#cpass'); const p=el?el.value:''; if(!p) return;
+async function cloudLogin(){ const el=$('#cpass'); const p=el?el.value:'';
+  if(!p){ toast(tx('Jamoa parolini kiriting','Enter the team password'),'bg-amber-900 border border-amber-500'); return; }
   const nm=$('#cnm'); localStorage.setItem('vl_name',nm?nm.value||'lab':'lab');
   localStorage.setItem('vl_pass',p); _ck=null; _ckp='';
   const rr=cloudReason();
@@ -897,8 +901,9 @@ async function cloudLogin(){ const el=$('#cpass'); const p=el?el.value:''; if(!p
   if(!await cloudAuth()){ cloudOn=false; localStorage.removeItem('vl_pass'); toast(tx('Parol xato','bad password'),'bg-red-900'); cloudStatus(); return; }
   const ever=localStorage.getItem('vl_ever'); const row=await cloudFetch();
   if(!ever&&row&&cloudDirty&&cloudDirty>(row.updated_at||0)){
-    if(confirm(tx('Bulutta jamoa nusxasi bor. Uni olamizmi? BEKOR - lokal nusxa yuboriladi.','Cloud has team state. Take it? CANCEL = upload local copy.'))){ await cloudLoad(); }
-    else{ await cloudPush(); } }
+    if(confirm(tx("Bulutta jamoa nusxasi bor. Uni olamizmi? BEKOR - lokal nusxa yuboriladi.",'Cloud has team state. Take it? CANCEL = upload local copy.'))){ await cloudLoad(); }
+    else if(isEd()){ await cloudPush(); }
+    else{ toast(tx("Lokal nuskani faqat tahrir kodi bilan yuklash mumkin (🔒 tugmasi)",'Uploading local copy requires the edit code (lock button)'),'bg-amber-900 border border-amber-500'); } }
   else{ await cloudLoad(); }
   cloudSubscribe(); cloudStatus(); render(); closeModal(); }
 function cloudLogout(){ cloudOn=false; localStorage.removeItem('vl_pass'); _ck=null; _ckp='';
@@ -933,15 +938,18 @@ function cloudModal(){ const who=cloudWho?(cloudWho+' — '+new Date(cloudLast).
    '<p class="text-xs text-slate-400 mb-3">'+tx("Malumot uchidan-uchiga shifrlanadi (AES-GCM).","Data is encrypted end-to-end (AES-GCM).")+' '+tx('Oxirgi uzgarish:','Last change:')+' '+who+' · server: '+CLOUD.url.replace('https://','').split('.')[0]+'</p>'+
    '<label class="block text-sm">'+tx('Ismingiz','Your name')+'<input id="cnm" class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5" value="'+esc(cloudName())+'"></label>'+
    '<label class="block text-sm mt-2">'+tx('Jamoa paroli','Team password')+'<input id="cpass" type="password" class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5"></label>'+
+   '<p class="text-[11px] text-slate-500 mt-1">'+tx("Parolni Muxammadsodiqdan oling. Ulangach - hamma o'zgarishni ko'rasiz.",'Get the password from Muxammadsodiq. After connecting you will see all shared data.')+'</p>'+
    '<div class="flex gap-2 mt-4"><button onclick="cloudLogin()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold">'+tx('Ulanish','Connect')+'</button>'+
    (cloudOn?'<button onclick="cloudLogout();cloudModal();" class="px-4 py-2 rounded-xl bg-red-900 border border-red-600 hover:bg-red-800 text-xs">'+tx('Uzish','Disconnect')+'</button>':'')+
    '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600 text-xs">'+tx('Yopish','Close')+'</button></div>');
   const cp=$('#cpass'); if(cp) cp.focus(); }
-async function cloudBoot(){ if(!sbReady()||!cloudPass()){ cloudStatus(); return; }
+async function cloudBoot(){ if(sbReady()){ if(!cloudPass()&&!localStorage.getItem('vl_asked')){ localStorage.setItem('vl_asked','1'); cloudStatus(); cloudModal(); return; }
   cloudOn=true; cloudDirty=+localStorage.getItem('vl_dirty')||0;
   if(await cloudAuth()){ cloudLoad(); cloudSubscribe(); }
   else cloudOn=false;
-  cloudStatus(); }
+  cloudStatus(); } else if(CLOUD.url.indexOf('VASHLOYIHA')>=0){ /* konfig yo'q: jim */ }
+  else cloudStatus(); }
+setInterval(function(){ if(cloudOn&&!modalOpen) cloudLoad(); },30000);
 
 /* ---- INIT ---- */
 lastST={}; S.flasks.forEach(fl=>lastST[fl.label]=status(fl));
