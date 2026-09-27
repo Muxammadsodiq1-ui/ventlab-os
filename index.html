@@ -6,6 +6,7 @@
 <title>VentLab OS — PB12 yo'naltirilgan skrining (Trial 2)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
   body{font-family:'Inter',ui-sans-serif,system-ui,-apple-system,sans-serif}
@@ -22,10 +23,52 @@
   .bub.b2{animation-delay:.9s} .bub.b3{animation-delay:1.7s}
   @keyframes wave{0%,100%{transform:translateX(0);transform-origin:center}50%{transform:translateX(1.5px)}}
   .liq{animation:wave 3.2s ease-in-out infinite}
-  body.night{background:#020409}
-  body.night header{background:rgba(2,4,9,.92)}
-  body.neon::before{background:radial-gradient(60rem 30rem at 80% -10%,rgba(74,222,128,.14),transparent),radial-gradient(50rem 28rem at -10% 110%,rgba(236,72,153,.16),transparent)}
-  body.neon .fcard{border-color:rgba(103,232,249,.45)}
+  /* ---- ☀️ KUNDUZ: yorug rejim ---- */
+  body.day{background:#dfe7f2;color:#0f172a}
+  body.day header{background:rgba(248,250,252,.95)!important;border-color:#b6c4d6!important}
+  body.day [class*="bg-slate-9"]{background-color:#fbfcfe!important}
+  body.day [class*="bg-slate-8"]{background-color:#e8edf7!important}
+  body.day [class*="bg-slate-7"]{background-color:#d9e2f0!important}
+  body.day [class*="text-slate-1"],body.day [class*="text-slate-2"]{color:#0f172a!important}
+  body.day [class*="text-slate-3"],body.day [class*="text-slate-4"],body.day [class*="text-slate-5"]{color:#475569!important}
+  body.day [class*="border-slate-"]{border-color:#c3cfdd!important}
+  body.day .glass{background:rgba(248,250,252,.9)!important}
+  body.day .kbd{color:#0f172a}
+  body.day h1{background-image:none!important;color:#0f2d4f!important}
+  body.day [class*="text-cyan-3"]:not([class*="bg-"]){color:#0e7490!important}
+  body.day [class*="text-sky-3"]:not([class*="bg-"]){color:#0369a1!important}
+  body.day [class*="text-blue-3"]:not([class*="bg-"]){color:#1d4ed8!important}
+  body.day [class*="text-emerald-3"]:not([class*="bg-"]){color:#047857!important}
+  body.day [class*="text-emerald-4"]:not([class*="bg-"]){color:#065f46!important}
+  body.day [class*="text-green-3"]:not([class*="bg-"]){color:#15803d!important}
+  body.day [class*="text-green-4"]:not([class*="bg-"]){color:#166534!important}
+  body.day [class*="text-amber-2"]:not([class*="bg-"]){color:#b45309!important}
+  body.day [class*="text-amber-3"]:not([class*="bg-"]){color:#b45309!important}
+  body.day [class*="text-yellow-2"]:not([class*="bg-"]){color:#a16207!important}
+  body.day [class*="text-yellow-3"]:not([class*="bg-"]){color:#a16207!important}
+  body.day [class*="text-orange-3"]:not([class*="bg-"]){color:#c2410c!important}
+  body.day [class*="text-orange-4"]:not([class*="bg-"]){color:#9a3412!important}
+  body.day [class*="text-red-2"]:not([class*="bg-"]){color:#b91c1c!important}
+  body.day [class*="text-red-3"]:not([class*="bg-"]){color:#dc2626!important}
+  body.day [class*="text-red-4"]:not([class*="bg-"]){color:#b91c1c!important}
+  body.day [class*="text-violet-3"]:not([class*="bg-"]){color:#6d28d9!important}
+  /* ---- 🌙 TUN: mutlaqo qora ---- */
+  body.night{background:#000;color:#e2e8f0}
+  body.night header{background:rgba(0,0,0,.95)!important;border-color:#1a1a1a!important}
+  body.night [class*="bg-slate-9"]{background-color:#05060a!important}
+  body.night [class*="bg-slate-8"]{background-color:#0b0e15!important}
+  body.night [class*="bg-slate-7"]{background-color:#141a26!important}
+  body.night h1{color:#fbbf24!important;background:none!important}
+  body.night .fcard{box-shadow:0 0 18px rgba(251,191,36,.07)}
+  body.night [class*="text-slate-5"]{color:#5b6370!important}
+  /* ---- ⚡ NEON: yonib turuvchi ---- */
+  body.neon{background:#07001b}
+  body.neon::before{background:conic-gradient(from 0deg at 50% -20%,rgba(0,209,255,.12),rgba(255,0,153,.1),rgba(0,255,136,.1),rgba(0,209,255,.12));animation:spinneon 24s linear infinite}
+  @keyframes spinneon{to{transform:rotate(360deg)}}
+  body.neon .fcard{border-color:rgba(103,232,249,.45)!important;box-shadow:0 0 18px rgba(34,211,238,.16)}
+  body.neon h1{background-image:none;color:#67e8f9!important;text-shadow:0 0 18px rgba(103,232,249,.8)}
+  body.neon header{border-color:rgba(103,232,249,.25)!important}
+  body.neon #nextBtn{animation:shg 2.5s infinite;background-size:200% 100%!important;background-image:linear-gradient(110deg,#10b981 30%,#22d3ee 50%,#10b981 70%)!important}
   .confetti{position:fixed;top:-12px;z-index:80;pointer-events:none;animation:fall 2.3s ease-in forwards}
   @keyframes fall{to{transform:translateY(105vh) rotate(420deg);opacity:.2}}
   ::-webkit-scrollbar{width:9px;height:9px}
@@ -59,7 +102,7 @@
       <button id="nextBtn" onclick="doNext()" class="lbtn px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold shadow-lg shadow-emerald-900/40">NEXT ▶</button>
     </div>
     <nav class="ml-auto flex flex-wrap gap-1 text-sm" id="navTabs"></nav>
-    <div class="flex gap-1"><button onclick="toggleTheme()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" id="themeBtn" title="rejim">🎨</button><button onclick="toggleSound()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" id="soundBtn" title="ovoz">🔇</button><button onclick="toggleLang()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs font-bold" id="langBtn">🌐</button></div>
+    <div class="flex gap-1"><button onclick="cloudModal()" id="cloudBtn" title="Bulut sinxronizatsiya" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs">☁️</button><button onclick="toggleTheme()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" id="themeBtn" title="rejim">🎨</button><button onclick="toggleSound()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" id="soundBtn" title="ovoz">🔇</button><button onclick="toggleLang()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs font-bold" id="langBtn">🌐</button></div>
   </div>
 </header>
 
@@ -175,6 +218,7 @@ function defaultState(){
                equalizeWater:true, postInd:{37:4,20:12}, order:null },
     stocks, flasks:null,
     dismissed:{}, view:'steps', selLab:'A', globalLog:[],
+    chartWin:20,
     randomSeed:null, randomizedAt:null,
   };
 }
@@ -209,7 +253,7 @@ let S=(()=>{ try{ const raw=localStorage.getItem(LS);
   if(raw){ const s=JSON.parse(raw); if(s&&s.version===3&&s.settings&&s.flasks&&s.flasks.length===12) return s; } }
   catch(e){} return defaultState(); })();
 mkFlasks();
-function save(){ try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){} }
+function save(){ try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){} cloudSyncSoon(); }
 function toggleLang(){ S.lang=S.lang==='uz'? 'en':'uz'; save(); render(); updateLangBtn(); }
 function updateLangBtn(){ const b=document.getElementById('langBtn'); if(b) b.textContent='🌐 '+(S.lang==='uz'?'UZ':'EN'); }
 
@@ -319,7 +363,7 @@ function openModal(html){ modalOpen=true;
     '<div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg my-8 p-5 shadow-2xl fadein">'+html+'</div></div>'; }
 function closeModal(){ modalOpen=false; $('#modalRoot').innerHTML=''; render(); }
 function toast(msg,cls){ const d=document.createElement('div');
-  d.className='px-4 py-2.5 rounded-xl text-sm shadow-2xl fadein '+(cls||'glass border border-slate-700');
+  d.className='px-4 py-2.5 rounded-xl text-sm shadow-2xl fadein '+(cls||'glass border border-slate-700')+(cls&&cls.indexOf('glass')<0&&document.body.classList.contains('day')?' text-white':'');
   d.innerHTML=msg; $('#toastRoot').appendChild(d); setTimeout(()=>d.remove(),4500); }
 function gval(nmN){ const e=document.querySelector('.modal-in[name='+nmN+']'); if(!e||e.value===''||e.value==null) return undefined; return parseFloat(e.value); }
 function gchecked(nmN){ const e=document.querySelector('.modal-in[name='+nmN+']'); return !!(e&&e.checked); }
@@ -420,31 +464,33 @@ function doHarvest(label){ const fl=fL(label);
   fl.harvested=true; fl.harvestedTs=now(); fl.step='done'; delete S.dismissed[label+'-h'];
   logg(fl,'harvest',t('concrete')); confetti(); beep(660,140); setTimeout(()=>beep(880,180),150); toast(tx('✅ Kolba '+label+' tamamland!','✅ Flask '+label+' complete!'),'bg-emerald-900 border border-emerald-500'); closeModal(); }
 
-/* ---- ✎ TO\'G\'RILATIB BERISH: vaqt va hajmni qo\'lda o\'zgartirish ---- */
-function modalFix(label){ const fl=fL(label); const m=M(fl);
-  openModal('<h3 class="text-lg font-bold">✎ \"To\'g\'riltish\" — kolba '+label+' <span class="text-xs text-slate-400">(run '+fl.run+')</span></h3>'+
-  '<p class="text-xs text-slate-400 mb-3">'+tx('Esdan chiqdi yoki xato bo\'ldimi? Keraklisini tanlab to\'g\'rilang.','Forgot something or made a mistake? Pick a fix below.')+'</p>'+
-  '<div class="space-y-3 text-sm'>
-  '<input type="hidden" name="fx_label" value="'+label+'">'+
+/* ---- ✎ TUZATISH: vaqt va hajmni qo'lda o'zgartirish ---- */
+function modalFix(label){ const fl=fL(label); if(!fl) return;
+  openModal('<h3 class="text-lg font-bold">✎ Tuzatish — kolba '+label+' <span class="text-xs text-slate-400">(run '+fl.run+')</span></h3>'+
+  '<p class="text-xs text-slate-400 mb-3">'+tx('Esdan chiqdimi yoki xatolikmi? Faqat keraklisini toldi:','Forgot or made a mistake? Fill only what you need:')+'</p>'+
+  '<div class="space-y-3 text-sm">'+
+  '<input type="hidden" class="modal-in" name="fx_label" value="'+label+'">'+
   (fl.step==='growth'?
-  '<label class="block">⏱ '+tx('Boshlanganiga necha soat o\'tdi? (agar tugma bosilgani kechiksa)','Hours since actual start (if you pressed late):')+
-  '<input name="fx_start" type="number" step="0.05" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="e.g. 1.5"></label>':'')+
+   '<label class="block">⏱ '+tx('Aslida necha soat oldin boshlagan eding? (0.25 shaklida yoz)','Actually started how many hours ago?')+
+   '<input name="fx_start" type="number" min="0" step="0.05" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="e.g. 1.5"></label>':'')+
   (fl.step==='induced'?
-  '<label class="block">⏳ '+tx('Qolgan ifoda vaqti (soat) — o\'zgartirish','Remaining expression hours (h) — change:')+
-  '<input name="fx_inc" type="number" step="0.1" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="e.g. 6"></label>':'')+
-  '<label class="block">💧 '+tx('Hajm tuzatish: ozroq qos/+ yoki ayir/- (µL)','Volume fix: add (+) or remove (−) some µL:')+
-  '<input name="fx_vol" type="number" step="any" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="e.g. 100 yoki -100"></label>'+
+   '<label class="block">⏳ '+tx('Ifoda qolgan vaqtini qancha qilamiz? (soat)','Change remaining expression time to (h):')+
+   '<input name="fx_inc" type="number" min="0" step="0.1" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="e.g. 6"></label>':'')+
+  '<label class="block">💧 '+tx('Hajmni togrilash: qoshish yoki ayirish (mkl; masalan 100 yoki -100)','Volume fix: add or remove (µL, e.g. 100 or -100)')+
+  '<input name="fx_vol" type="number" step="any" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="0"></label>'+
   '</div>'+
-  '<div class="flex gap-2 mt-4"><button onclick="doFix()" class="lbtn px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-extrabold">✔ \"Qo\'llash\"</button>'+
+  '<div class="flex gap-2 mt-4"><button onclick="doFix()" class="lbtn px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-extrabold">✔ Qollash</button>'+
   '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">✕</button></div>');
 }
-function doFix(){ const label=gstr('fx_label'); const fl=fL(label);
+function doFix(){ const label=gstr('fx_label'); const fl=fL(label); if(!fl){ closeModal(); return; }
   const st=gval('fx_start'); const inc=gval('fx_inc'); const vol=gval('fx_vol');
-  if(st!=null&&st>=0&&fl.step==='growth'){ fl.startTs=now()-st*3.6e6; logg(fl,'fix','Start vaqti to\'g\'rilandi: '+st+'h oldin boshlangan.'); }
-  if(inc!=null&&inc>0&&fl.step==='induced'){ fl.incubH=inc; fl.incubEnds=now()+inc*3.6e6; logg(fl,'fix','Ifoda vaqti o\'zgartirildi: qoldi '+inc+'h.'); }
-  if(vol!=null&&vol!==0){ fl.totalVol=Math.max(0,fl.totalVol+vol); fl.additions.push({sub:(vol>0?'Water (+fix)':'sample (−fix)'), ul:Math.abs(vol), ts:now(), note:'manual fix'}); logg(fl,'fix','Hajm to\'g\'rilandi: '+(vol>0?'+':'')+vol+' µL → jami '+fl.totalVol.toFixed(0)+' µL.'); }
-  toast('✎ '+tx('To\'g\'rildi','Fixed')); closeModal(); }
-function gstr(nmN){ const e=document.querySelector('.modal-in[name='+nmN+']'); return e? e.value : ''; }
+  if(st!=null&&st>=0&&fl.step==='growth'){ fl.startTs=now()-st*3.6e6; logg(fl,'fix','Start vaqti tuzatildi: '+st+'h oldin boshlangan.'); }
+  if(inc!=null&&inc>=0&&fl.step==='induced'){ fl.incubH=inc; fl.incubEnds=now()+inc*3.6e6; logg(fl,'fix','Ifoda vaqti o\'zgartirildi: qoldi '+inc+'h.'); }
+  if(vol!=null&&vol!==0){ fl.totalVol=Math.max(0,fl.totalVol+vol);
+    fl.additions.push({sub:(vol>0?'Water(+fix)':'sample(-fix)'), ul:Math.abs(vol), ts:now(), note:'fix'});
+    logg(fl,'fix','Hajm tuzatildi: '+(vol>0?'+':'')+vol+' \u00b5L -> jami '+fl.totalVol.toFixed(0)+' \u00b5L'); }
+  toast('\u270e '+tx('Tuzatildi','Fixed')); closeModal(); }
+
 function doNext(){ const q=nextActions();
   if(!q.length){ toast(tx('🎉 Hozircha hammasi joyida. Keyingi rejalar: shuncha kuting va odamlarni kuzatib boring.','🎉 All on track — nothing pending.'),'glass border border-slate-600'); return; }
   const a=q[0]; const L=a.fl.label;
@@ -498,7 +544,7 @@ function quickBtns(fl){ const st=status(fl), L='\''+fl.label+'\''; let b='';
   if(st==='grow'||st==='warn'||st==='over') b+='<button onclick="openFor('+L+',\'od\')" class="px-3 py-1.5 rounded-lg text-xs font-bold '+(st==='over'?'bg-red-600 alertr':'bg-sky-600 hover:bg-sky-500')+'"> 🧪 OD</button>';
   if(st==='indc') b+='<button onclick="openFor('+L+',\'induce\')" class="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-xs font-bold alertg">✔ IPTG '+n2(iptgUlFor(fl))+' µL</button>';
   if(st==='harv') b+='<button onclick="openFor('+L+',\'harvest\')" class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-xs font-bold alertr">✔ '+tx('yig\'ildi','harvested')+'</button>';
-  b+='<button onclick="modalFix(\''+fl.label+'\')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" title="to\'g"riltish">✎</button>';
+  if(fl.step!=='prep'&&!fl.harvested) b+='<button onclick="modalFix(\''+fl.label+'\')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs" title="tuzatish">✎</button>';
   b+='<button onclick="selLab(\''+fl.label+'\');go(\'chart\')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 text-xs">📈</button>';
   return b; }
 function selLab(l){ S.selLab=l; save(); }
@@ -624,6 +670,8 @@ function renderChart(){ const lab=S.selLab||'A'; const fl=fL(lab); if(!fl) retur
 }
 function drawOd(fl,m){ if(typeof Chart==='undefined') return; const el=$('#odChart'); if(!el) return;
   if(odChart){odChart.destroy();odChart=null;}
+  const win=S.chartWin||20;
+  const light=document.body.classList.contains('day'); const tk=light?'#64748b':'#94a3b8', lg=light?'#334155':'#cbd5e1';
   const pts=fl.startTs? fl.ods.map(o=>({x:(o.ts-fl.startTs)/3.6e6,y:effOd(o)})):[];
   const mu=growRate(fl); let pred=[];
   if(pts.length){ const p0=pts[0], tEnd=(now()-fl.startTs)/3.6e6+2;
@@ -635,8 +683,8 @@ function drawOd(fl,m){ if(typeof Chart==='undefined') return; const el=$('#odCha
     {type:'line',label:tx('maqsad','target')+' '+m.od,data:[{x:0,y:m.od},{x:m.expH+4,y:m.od}],borderColor:'#4ade80',borderDash:[8,6],pointRadius:0},
     {type:'line',label:tx('reader limiti','reader limit'),data:[{x:0,y:S.settings.readerMaxOd},{x:m.expH+4,y:S.settings.readerMaxOd}],borderColor:'#ef4444',borderDash:[2,5],pointRadius:0}]},
     options:{responsive:true,maintainAspectRatio:false,animation:false,
-     scales:{x:{type:'linear',title:{display:true,text:'h'},ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{beginAtZero:true,suggestedMax:1.5,ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}},
-     plugins:{legend:{labels:{color:'#cbd5e1',boxWidth:12}}}}});
+     scales:{x:{type:'linear',title:{display:true,text:'h'},min:0,max:win,ticks:{color:tk},grid:{color:'#1e293b'}},y:{beginAtZero:true,suggestedMax:1.5,ticks:{color:tk},grid:{color:'#1e293b'}}},
+     plugins:{legend:{labels:{color:lg,boxWidth:12}}}}});
 }
 
 /* ---- TA'SIRLAR ---- */
@@ -662,9 +710,10 @@ function renderFx(){ const inp=S.flasks.map(fl=>{ const m=M(fl);
    '<table class="w-full text-xs"><tr class="text-left text-slate-400"><th class="px-2 py-1">'+tx('Kolba','Flask')+'</th><th class="px-2 py-1">'+tx('Dizayn','Design')+'</th><th class="px-2 py-1">'+tx('Holat','Status')+'</th><th class="px-2 py-1">'+t('resp_lbl')+'</th></tr>'+inp+'</table></div></div>';
   const el=$('#fxChart'); if(el&&typeof Chart!=='undefined'&&rows.length){
     if(fxChart){fxChart.destroy();fxChart=null;}
+    const ftk=document.body.classList.contains('day')?'#64748b':'#94a3b8';
     fxChart=new Chart(el,{type:'bar',data:{labels:rows.map(r=>r.label),datasets:[{data:rows.map(r=>+n2(r.e)),backgroundColor:rows.map(r=>r.e>0?'rgba(74,222,128,.8)':'rgba(239,68,68,.8)')}]},
      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b'}}}}});
+      scales:{x:{ticks:{color:ftk},grid:{color:'#1e293b'}},y:{ticks:{color:ftk,font:{size:10}},grid:{color:'#1e293b'}}}}});
   }
 }
 function setResp(runN,v){ fR(runN).response=v===''?null:parseFloat(v); save();
@@ -692,7 +741,9 @@ function renderSet(){
      '<label class="flex items-center gap-2 pt-4">'+t('weq_set')+'<input class="inv-in w-4 h-4" data-set="equalizeWater" type="checkbox" '+(st.equalizeWater?'checked':'')+'></label>'+
      '<label>'+t('pi37')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="pi37" type="number" value="'+postIndH(37)+'"></label>'+
      '<label>'+t('pi20')+'<input class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 tnum" data-set="pi20" type="number" value="'+postIndH(20)+'"></label>'+
+     '<label>'+tx('Grafik oynasi (h)','Chart window (h)')+'<select class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5" data-set="chartWin">'+[6,12,20,36].map(function(h){return '<option value="'+h+'"'+(h===(S.chartWin||20)?' selected':'')+'>'+h+' h</option>';}).join('')+'</select></label>'+
     '</div>'+
+    '<div class="text-xs text-slate-400 pt-2">☁️ '+tx('Bulut','Cloud')+': '+(cloudOn?(tx('ulangan','connected')+' ('+esc(cloudName())+')'+(cloudErr?' ⚠ '+cloudErr:'<span class="text-emerald-400"> ✓</span>')):tx('ulanmagan','off'))+' <button onclick="cloudModal()" class="underline">'+tx('ozgartirish','edit')+'</button></div>'+
     '<button onclick="saveInv()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold">'+t('save')+'</button>'+
    '</div>'+
    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 space-y-2">'+
@@ -715,6 +766,7 @@ function renderSet(){
 function saveInv(){ document.querySelectorAll('.inv-in').forEach(el=>{
     const stk=el.getAttribute('data-stk'); const k=el.getAttribute('data-set');
     if(k==='equalizeWater'){ S.settings.equalizeWater=el.checked; return; }
+    if(k==='chartWin'){ S.chartWin=parseInt(el.value)||20; return; }
     const v=parseFloat(el.value); if(isNaN(v)) return;
     if(stk) S.stocks[stk].c=v;
     else if(k==='pi37') S.settings.postInd[37]=v;
@@ -728,8 +780,8 @@ function importJson(inp){ const f=inp.files[0]; if(!f)return; const r=new FileRe
 function resetAll(){ if(confirm(tx('HAMMASI o\'chiriladi. Ishonchingiz komilmi?','Delete EVERYTHING. Sure?'))&&confirm(tx('Bildim-aytdim?','Really?'))){ localStorage.removeItem(LS); S=defaultState(); initFlasks(DESIGN.map(d=>d.run)); save(); render(); } }
 
 /* ---- REJIMLAR: theme / sound / confetti ---- */
-function applyTheme(){ const names=['','night','neon']; document.body.className='bg-slate-950 text-slate-100 min-h-screen '+(names[S.settings.theme||0]||'');
-  const b=document.getElementById('themeBtn'); if(b){ b.innerHTML=['🎨 kunduz','🌙 tun','⚡ neon'][(S.settings.theme||0)%3]; } }
+function applyTheme(){ const names=['day','night','neon']; document.body.className='bg-slate-950 text-slate-100 min-h-screen '+(names[S.settings.theme||0]||'day');
+  const b=document.getElementById('themeBtn'); if(b){ b.innerHTML=['☀️ kunduz','🌙 tun','⚡ neon'][(S.settings.theme||0)%3]; } }
 function toggleTheme(){ S.settings.theme=((S.settings.theme||0)+1)%3; save(); applyTheme(); }
 function toggleSound(){ S.settings.sound=!S.settings.sound; save(); applySound(); }
 function applySound(){ const b=document.getElementById('soundBtn'); if(b){ b.innerHTML=S.settings.sound?'🔊':'🔇'; } }
@@ -747,7 +799,7 @@ function updateTop(){ const es=S.flasks.filter(x=>x.startTs); const t0=es.length
   $('#gElapsed').innerHTML=t0?hms(now()-t0):'—';
   const hr=new Date().getHours(); const dn=$('#dnIcon'); if(dn) dn.innerHTML=(hr>=6&&hr<19)?'☀️':'🌙'; }
 let lastST=null;
-function tick(){ updateTop();
+function tick(){ updateTop(); cloudStatus();
   if(modalOpen) return;
   const ae=document.activeElement;
   if(ae&&(ae.tagName==='INPUT'||ae.tagName==='SELECT')) return;
@@ -770,10 +822,96 @@ function render(){ destroy();
   else if(S.view==='set') renderSet();
   updateTop(); }
 
+/* ---- ☁️ BULUT SINXRONIZATSIYA: Supabase + E2E shifrlash (AES-GCM) ---- */
+const CLOUD={url:'https://ynsfbimxokzncmfaiqhs.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inluc2ZiaW14b2t6bmNtZmFpcWhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NzYzODMsImV4cCI6MjEwNjA1MjM4M30._gN2oMt9zkCbHxBSeM3RvLeJtSKg4oYwJsKzGwzd8Yc',email:'vent@gmail.com'};
+let SB=null,_ck=null,_ckp='',cloudOn=false,cloudSub=null,cloudDirty=0,cloudTimer=null,cloudErr='',cloudLast=0,cloudWho='';
+function sbReady(){ if(typeof supabase==='undefined') return false;
+  if(!SB){ if(CLOUD.url.indexOf('VASHLOYIHA')>=0||CLOUD.key.indexOf('ANON_KALIT')>=0) return false;
+    SB=supabase.createClient(CLOUD.url,CLOUD.key); }
+  return true; }
+function cloudPass(){ return localStorage.getItem('vl_pass')||''; }
+function cloudName(){ return localStorage.getItem('vl_name')||'lab'; }
+async function cloudKey(){ const p=cloudPass(); if(_ck&&_ckp===p) return _ck; const e=new TextEncoder();
+  const raw=await crypto.subtle.importKey('raw',e.encode(p),'PBKDF2',false,['deriveKey']);
+  _ck=await crypto.subtle.deriveKey({name:'PBKDF2',salt:e.encode('ventlab-v3-e2e-salt'),iterations:100000,hash:'SHA-256'},raw,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  _ckp=p; return _ck; }
+function b64s(b){ const a=new Uint8Array(b); let s=''; for(const x of a) s+=String.fromCharCode(x); return btoa(s); }
+function b64v(s){ const b=atob(s); const a=new Uint8Array(b.length); for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; }
+async function cloudEncrypt(txt){ const k=await cloudKey(); const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,new TextEncoder().encode(txt)); return {iv:b64s(iv),data:b64s(ct)}; }
+async function cloudDecrypt(d){ const k=await cloudKey();
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64v(d.iv)},k,b64v(d.data)); return new TextDecoder().decode(pt); }
+function cloudSyncSoon(){ cloudDirty=Date.now(); localStorage.setItem('vl_dirty',cloudDirty);
+  if(!cloudOn||!cloudPass()) return;
+  if(cloudTimer) clearTimeout(cloudTimer); cloudTimer=setTimeout(cloudPush,900); }
+async function cloudAuth(){ const s=await SB.auth.getSession(); if(s&&s.data&&s.data.session) return true;
+  const r=await SB.auth.signInWithPassword({email:CLOUD.email,password:cloudPass()}); return !r.error; }
+function applyRemote(obj){ if(!obj||obj.version!==3||!obj.flasks) return false;
+  S=obj; localStorage.setItem(LS,JSON.stringify(S)); localStorage.removeItem('vl_dirty'); cloudDirty=0;
+  applyTheme(); applySound(); render(); return true; }
+async function cloudFetch(){ if(!sbReady()||!await cloudAuth()) return null;
+  const r=await SB.from('lab_state').select('*').eq('id',1).maybeSingle(); if(r.error||!r.data) return null; return r.data; }
+async function cloudPush(){ if(!cloudOn||!SB) return;
+  try{ cloudErr=''; if(!await cloudAuth()) throw new Error('auth');
+    const box=await cloudEncrypt(JSON.stringify(S)); const ts=Date.now();
+    const r=await SB.from('lab_state').upsert({id:1,data:box.data,iv:box.iv,updated_at:ts,updated_by:cloudName()});
+    if(r.error) throw r.error;
+    cloudDirty=0; localStorage.removeItem('vl_dirty'); cloudLast=ts; cloudWho=cloudName(); localStorage.setItem('vl_ever','1'); }
+  catch(e){ cloudErr=tx('yozib bolmadi','push failed'); }
+  cloudStatus(); }
+async function cloudLoad(){ try{
+    const row=await cloudFetch(); if(!row){ cloudErr=cloudErr||tx('bulut bosh','cloud empty'); cloudStatus(); return false; }
+    const obj=JSON.parse(await cloudDecrypt(row)); cloudLast=row.updated_at||0; cloudWho=row.updated_by||'';
+    if(cloudDirty&&cloudDirty>cloudLast){ if(cloudOn) cloudSyncSoon(); return 'local'; }
+    applyRemote(obj); return 'remote'; }
+  catch(e){ cloudErr=tx('parol yoki ulanish xatosi','password or network error'); cloudStatus(); return false; } }
+function cloudSubscribe(){ if(!SB||cloudSub) return;
+  cloudSub=SB.channel('lab-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'lab_state'},async p=>{
+    const d=p.new; if(!d||!d.data) return;
+    if(cloudDirty&&cloudDirty>(d.updated_at||0)) return; /* lokalim yanada yangi */
+    if((d.updated_at||0)<=cloudLast) return; /* echo yoki eski */
+    try{ const obj=JSON.parse(await cloudDecrypt(d));
+      if(applyRemote(obj)){ cloudLast=d.updated_at; cloudWho=d.updated_by||'';
+        if(cloudName()!==cloudWho) toast("☁️ "+cloudWho+" "+tx("ozgartirdi","updated")); } }
+    catch(e){ cloudErr=tx('parol almashgan bolishi mumkin','password may have changed'); cloudStatus(); } }).subscribe(); }
+function cloudStatus(){ const b=$('#cloudBtn'); if(!b) return;
+  const col=!cloudPass()?'opacity-50':(cloudErr?'text-red-400':(cloudDirty?'text-amber-300':'text-emerald-400'));
+  b.innerHTML='<span class="'+col+'">☁️</span>'; b.title=cloudErr||tx('Bulut sinxronizatsiya','Cloud sync'); }
+async function cloudLogin(){ const el=$('#cpass'); const p=el?el.value:''; if(!p) return;
+  const nm=$('#cnm'); localStorage.setItem('vl_name',nm?nm.value||'lab':'lab');
+  localStorage.setItem('vl_pass',p); _ck=null; _ckp='';
+  if(!sbReady()){ toast(tx('CLOUD konfiguratsiyasi toldirilmagan','CLOUD config not filled'),'bg-red-900'); return; }
+  cloudOn=true; cloudErr='';
+  if(!await cloudAuth()){ cloudOn=false; localStorage.removeItem('vl_pass'); toast(tx('Parol xato','bad password'),'bg-red-900'); cloudStatus(); return; }
+  const ever=localStorage.getItem('vl_ever'); const row=await cloudFetch();
+  if(!ever&&row&&cloudDirty&&cloudDirty>(row.updated_at||0)){
+    if(confirm(tx('Bulutta jamoa nusxasi bor. Uni olamizmi? BEKOR - lokal nusxa yuboriladi.','Cloud has team state. Take it? CANCEL = upload local copy.'))){ await cloudLoad(); }
+    else{ await cloudPush(); } }
+  else{ await cloudLoad(); }
+  cloudSubscribe(); cloudStatus(); render(); closeModal(); }
+function cloudLogout(){ cloudOn=false; localStorage.removeItem('vl_pass'); _ck=null; _ckp='';
+  if(cloudSub){ cloudSub.unsubscribe(); cloudSub=null; }
+  toast(tx('Bulutdan uzildi','disconnected')); cloudStatus(); }
+function cloudModal(){ const who=cloudWho?(cloudWho+' — '+new Date(cloudLast).toLocaleString()):tx('hali yoq','none yet');
+  openModal('<h3 class="text-lg font-bold mb-1">☁️ '+tx('Bulut sinxronizatsiya','Cloud sync')+'</h3>'+
+   '<p class="text-xs text-slate-400 mb-3">'+tx("Malumot uchidan-uchiga shifrlanadi (AES-GCM).","Data is encrypted end-to-end (AES-GCM).")+' '+tx('Oxirgi uzgarish:','Last change:')+' '+who+'</p>'+
+   '<label class="block text-sm">'+tx('Ismingiz','Your name')+'<input id="cnm" class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5" value="'+esc(cloudName())+'"></label>'+
+   '<label class="block text-sm mt-2">'+tx('Jamoa paroli','Team password')+'<input id="cpass" type="password" class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5"></label>'+
+   '<div class="flex gap-2 mt-4"><button onclick="cloudLogin()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold">'+tx('Ulanish','Connect')+'</button>'+
+   (cloudOn?'<button onclick="cloudLogout();cloudModal();" class="px-4 py-2 rounded-xl bg-red-900 border border-red-600 hover:bg-red-800 text-xs">'+tx('Uzish','Disconnect')+'</button>':'')+
+   '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600 text-xs">'+tx('Yopish','Close')+'</button></div>');
+  const cp=$('#cpass'); if(cp) cp.focus(); }
+async function cloudBoot(){ if(!sbReady()||!cloudPass()){ cloudStatus(); return; }
+  cloudOn=true; cloudDirty=+localStorage.getItem('vl_dirty')||0;
+  if(await cloudAuth()){ cloudLoad(); cloudSubscribe(); }
+  else cloudOn=false;
+  cloudStatus(); }
+
 /* ---- INIT ---- */
 lastST={}; S.flasks.forEach(fl=>lastST[fl.label]=status(fl));
 applyTheme(); applySound();
 render();
+cloudBoot();
 setInterval(tick,1000);
 console.log('VentLab OS v3 ready.');
 
