@@ -130,8 +130,8 @@ const DESIGN=[
  {run:8, gly:0.8, phos:50, iptg:0.1, temp:20, expH:12, od:1.2, mg:0,  ye:10},
  {run:9, gly:0.8, phos:50, iptg:1.0, temp:20, expH:12, od:0.4, mg:10, ye:0},
  {run:10,gly:0.0, phos:50, iptg:1.0, temp:37, expH:4,  od:0.4, mg:0,  ye:10},
- {run:11,gly:0.8, phos:0,  iptg:1.0, temp:37, expH:4,  od:0.4, mg:0,  ye:0},
- {run:12,gly:0.0, phos:0,  iptg:0.1, temp:20, expH:12, od:0.4, mg:0,  ye:0},
+ {run:11,gly:0.0, phos:0,  iptg:0.1, temp:20, expH:12, od:0.4, mg:0,  ye:0},
+ {run:12,gly:0.8, phos:0,  iptg:1.0, temp:37, expH:4,  od:0.4, mg:0,  ye:0},
 ];
 const FACTORS=[
  {key:'gly', labelUz:'Glitserin',   labelEn:'Glycerol',       hi:0.8, lo:0.0, unit:'%'},
@@ -793,8 +793,8 @@ function renderSet(){
     '<p class="text-[11px] text-slate-400">'+tx('Har amaldan keyin brauzerda avtomatik saqlanadi. Brauzer tozalanishidan oldin zaxira oling.','Autosaves to browser after every action. Export before clearing browser data.')+'</p></div>'+
    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">🧾 '+t('log_title')+'</h3><table class="w-full">'+(rows||'')+'</table></div>'+
    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">📐 PB12 jadvali ('+tx('tizimda aynan shunday — 6 yuqori / 6 past, balanslangan','stored exactly as given — balanced 6 high / 6 low')+')</h3>'+
-    '<table class="w-full text-[11px] tnum"><tr class="text-slate-400 text-left"><th class="px-1 py-1">run</th><th class="px-1 py-1">gly%</th><th class="px-1 py-1">P</th><th class="px-1 py-1">IPTG</th><th class="px-1 py-1">degC</th><th class="px-1 py-1">jadval·h</th><th class="px-1 py-1">OD</th><th class="px-1 py-1">Mg</th><th class="px-1 py-1">YE</th><th class="px-1 py-1">+IPTG</th></tr>'+
-    DESIGN.map(md=>'<tr class="border-t border-slate-800"><td class="px-1 py-1">'+md.run+'</td><td class="px-1 py-1">'+md.gly+'</td><td class="px-1 py-1">'+md.phos+'</td><td class="px-1 py-1">'+md.iptg+'</td><td class="px-1 py-1 '+(md.temp>=30?'text-red-300 font-bold':'text-blue-300 font-bold')+'">'+md.temp+'</td><td class="px-1 py-1">'+md.expH+'</td><td class="px-1 py-1">'+md.od+'</td><td class="px-1 py-1">'+md.mg+'</td><td class="px-1 py-1">'+md.ye+'</td><td class="px-1 py-1">'+postIndH(md.temp)+'h</td></tr>').join('')+'</table></div>'+
+    '<table class="w-full text-[11px] tnum"><tr class="text-slate-400 text-left"><th class="px-1 py-1">run</th><th class="px-1 py-1">gly%</th><th class="px-1 py-1">P</th><th class="px-1 py-1">IPTG</th><th class="px-1 py-1">degC</th><th class="px-1 py-1">jadval·h</th><th class="px-1 py-1">OD</th><th class="px-1 py-1">Mg</th><th class="px-1 py-1">YE</th></tr>'+
+    DESIGN.map(md=>'<tr class="border-t border-slate-800"><td class="px-1 py-1">'+md.run+'</td><td class="px-1 py-1">'+md.gly+'</td><td class="px-1 py-1">'+md.phos+'</td><td class="px-1 py-1">'+md.iptg+'</td><td class="px-1 py-1 '+(md.temp>=30?'text-red-300 font-bold':'text-blue-300 font-bold')+'">'+md.temp+'</td><td class="px-1 py-1">'+md.expH+'</td><td class="px-1 py-1">'+md.od+'</td><td class="px-1 py-1">'+md.mg+'</td><td class="px-1 py-1">'+md.ye+'</td></tr>').join('')+'</table></div>'+
     '<div class="text-[10px] text-amber-300 mt-1">'+tx('⚠ jadval·h = IPTG dan keyingi ifoda vaqti (qo\'lyozmadan). 24h uzoq → amalda 12h @20°C / 4h @37°C. OD ga yetish vaqti esa MODEL BASHORATI (2+ o\'lchovdan keyin aniqroq).','table·h = post-IPTG expression time (from notes). 24h is long → practice: 12h @20°C / 4h @37°C. Time-to-OD is a model estimate (better after 2+ readings).')+'</div>'+
    '<div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4"><h3 class="font-bold mb-2 text-sm">🗺 '+t('map_title')+'</h3>'+
     '<div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mome text-xs">'+
