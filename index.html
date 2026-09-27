@@ -120,25 +120,24 @@ const LS='ventlab_os_v3';
 
 /* ---- PB12 dizayn (qo'lyozmalar, Trial 2) ---- */
 const DESIGN=[
- {run:1, gly:0.8, phos:50, iptg:0.1, temp:37, expH:24, od:1.2, mg:0,  ye:0},
- {run:2, gly:0.0, phos:50, iptg:1.0, temp:20, expH:24, od:1.2, mg:10, ye:0},
+ {run:1, gly:0.8, phos:50, iptg:0.1, temp:37, expH:4,  od:1.2, mg:0,  ye:0},
+ {run:2, gly:0.0, phos:50, iptg:1.0, temp:20, expH:12, od:1.2, mg:10, ye:0},
  {run:3, gly:0.8, phos:0,  iptg:1.0, temp:37, expH:4,  od:1.2, mg:10, ye:10},
- {run:4, gly:0.0, phos:50, iptg:0.1, temp:37, expH:24, od:0.4, mg:10, ye:10},
- {run:5, gly:0.0, phos:0,  iptg:1.0, temp:20, expH:24, od:1.2, mg:0,  ye:10},
+ {run:4, gly:0.0, phos:50, iptg:0.1, temp:37, expH:4,  od:0.4, mg:10, ye:10},
+ {run:5, gly:0.0, phos:0,  iptg:1.0, temp:20, expH:12, od:1.2, mg:0,  ye:10},
  {run:6, gly:0.0, phos:0,  iptg:0.1, temp:37, expH:4,  od:1.2, mg:10, ye:0},
- {run:7, gly:0.8, phos:0,  iptg:0.1, temp:20, expH:24, od:0.4, mg:10, ye:10},
- {run:8, gly:0.8, phos:50, iptg:0.1, temp:20, expH:4,  od:1.2, mg:0,  ye:10},
- {run:9, gly:0.8, phos:50, iptg:1.0, temp:20, expH:4,  od:0.4, mg:10, ye:0},
+ {run:7, gly:0.8, phos:0,  iptg:0.1, temp:20, expH:12, od:0.4, mg:10, ye:10},
+ {run:8, gly:0.8, phos:50, iptg:0.1, temp:20, expH:12, od:1.2, mg:0,  ye:10},
+ {run:9, gly:0.8, phos:50, iptg:1.0, temp:20, expH:12, od:0.4, mg:10, ye:0},
  {run:10,gly:0.0, phos:50, iptg:1.0, temp:37, expH:4,  od:0.4, mg:0,  ye:10},
- {run:11,gly:0.8, phos:0,  iptg:1.0, temp:37, expH:24, od:0.4, mg:0,  ye:0},
- {run:12,gly:0.0, phos:0,  iptg:0.1, temp:20, expH:4,  od:0.4, mg:0,  ye:0},
+ {run:11,gly:0.8, phos:0,  iptg:1.0, temp:37, expH:4,  od:0.4, mg:0,  ye:0},
+ {run:12,gly:0.0, phos:0,  iptg:0.1, temp:20, expH:12, od:0.4, mg:0,  ye:0},
 ];
 const FACTORS=[
  {key:'gly', labelUz:'Glitserin',   labelEn:'Glycerol',       hi:0.8, lo:0.0, unit:'%'},
  {key:'phos',labelUz:'Fosfat (media)',labelEn:'Phosphate (media)',hi:50,lo:0, unit:'mM'},
  {key:'iptg',labelUz:'IPTG',        labelEn:'IPTG',           hi:1.0, lo:0.1, unit:'mM'},
  {key:'temp',labelUz:'Harorat',     labelEn:'Temperature',    hi:37,  lo:20,  unit:'°C'},
- {key:'expH',labelUz:'Ifoda vaqti (jadval)',labelEn:'Expression time (table)',hi:24, lo:4, unit:'h'},
  {key:'od',  labelUz:'OD600 maqsadi',labelEn:'OD600 target', hi:1.2, lo:0.4,  unit:''},
  {key:'mg',  labelUz:'MgSO4',       labelEn:'MgSO4',          hi:10,  lo:0,   unit:'mM'},
  {key:'ye',  labelUz:'Yeast extract (media)',labelEn:'Yeast extract (media)',hi:10,lo:0,unit:'g/L'},
@@ -266,7 +265,7 @@ function hms(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600)
   return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
 function fL(label){ return S.flasks.find(x=>x.label===label); }
 function fR(runN){ return S.flasks.find(x=>x.run===Number(runN)); }
-function M(fl){ return DESIGN[fl.run-1]; }
+function M(fl){ const d=DESIGN[fl.run-1]; return d? Object.assign({},d,{expH:postIndH(d.temp)}) : d; }
 function sumAdd(fl,sub){ return fl.additions.filter(a=>a.sub===sub).reduce((t,a)=>t+a.ul,0); }
 function lastOd(fl){ return fl.ods.length? fl.ods[fl.ods.length-1]:null; }
 function effOd(o){ return o.od*o.dil; }
