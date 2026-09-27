@@ -408,6 +408,9 @@ function modalOd(label){ const fl=fL(label), m=M(fl); const lo=lastOd(fl);
    '<p class="text-xs text-slate-400 mb-3">'+(lo?tx('Oxirgi OD: <b>'+n2(effOd(lo))+'</b>. ','Last OD: <b>'+n2(effOd(lo))+'</b>. '):'')+t('od_sample_hint')+' '+(m.od>S.settings.readerMaxOd? tx('OD '+S.settings.readerMaxOd+'+  bo\'lsa ×2/×5 suyuqlashtirib o\'qing.','If OD > '+S.settings.readerMaxOd+', dilute ×2/×5.'):'')+'</p>'+
    '<div class="space-y-3 text-sm">'+
     '<label class="block">'+t('od_lbl')+'<input name="od" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 text-lg tnum" placeholder="0.35" autofocus></label>'+
+   '<label class="block"><span class="text-xs text-slate-400">⏱ '+tx("O\'tib ketgan bo\'lsa vaqtini qoldiring (aks holda tegmang)",'If measured earlier, adjust the exact time; otherwise leave it')+'</span>'+
+   '<input name="od_ts" id="od_ts_in" type="datetime-local" value="'+dtLocalIso(now())+'" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 tnum">'+
+   '<button type="button" onclick="document.getElementById(\'od_ts_in\').value=dtLocalIso(now())" class="text-xs px-2 py-1 mt-1 rounded-lg bg-slate-800 border border-slate-600">'+tx('hozir','now')+'</button></label>'+
     '<div class="flex items-center gap-2 text-xs"><span class="text-slate-400">'+t('dil')+':</span>'+
      [1,2,5].map(x=>'<button onclick="DIL.v='+x+';document.querySelectorAll(\'.dilbtn\').forEach(b=>b.className=\'dilbtn px-3 py-1.5 rounded-lg font-bold \'+(b.getAttribute(\'data-d\')==\''+x+'\'?\'bg-cyan-600\':\'bg-slate-800 border border-slate-600\'))" data-d="'+x+'" class="dilbtn px-3 py-1.5 rounded-lg font-bold '+(x===1?'bg-cyan-600':'bg-slate-800 border border-slate-600')+'">×'+x+'</button>').join('')+
      '<span class="text-slate-400 ml-2">'+tx('namuna','sample')+':</span><input name="sv" class="modal-in w-20 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1" value="'+S.settings.odSampleUl+'"> µL'+
@@ -418,10 +421,14 @@ function modalOd(label){ const fl=fL(label), m=M(fl); const lo=lastOd(fl);
 function doOd(label){ const fl=fL(label), m=M(fl);
   const od=gval('od'); if(od==null||od<0){ toast(tx('⚠ OD qiymatini yozing','⚠ Type the OD reading'),'bg-red-900 border border-red-500'); return; }
   const sv=gval('sv')!=null?gval('sv'):S.settings.odSampleUl;
+  const tsEl=document.querySelector('.modal-in[name=od_ts]');
+  const tsV=(tsEl&&tsEl.value)?new Date(tsEl.value).getTime():NaN;
+  const ts2=isNaN(tsV)?now():tsV;
   fl.totalVol=Math.max(0,fl.totalVol-(sv||0));
-  fl.ods.push({ts:now(), od, dil:DIL.v, volUl:sv});
+  fl.ods.push({ts:ts2, od, dil:DIL.v, volUl:sv});
   delete S.dismissed[label+'-m']; delete S.dismissed[label+'-o'];
-  logg(fl,'od','OD600 = '+od+(DIL.v>1?' ×'+DIL.v+' = '+n2(od*DIL.v):'')+' ('+sv+' µL namuna) → hajm '+fl.totalVol);
+  const back=(tsV>0&&tsV<now()-90000)? tx(' @ vaqt ',' @ time ')+new Date(tsV).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+  logg(fl,'od','OD600 = '+od+(DIL.v>1?' ×'+DIL.v+' = '+n2(od*DIL.v):'')+' ('+sv+' µL namuna) → hajm '+fl.totalVol+back);
   const eff=od*DIL.v;
   if(eff>=m.od&&fl.step==='growth') toast(tx('🎯 Kolba '+label+': OD yetdi! NEXT tugmasi → IPTG.','🎯 Flask '+label+': OD reached! NEXT → IPTG.'),'bg-green-900 border border-green-500 alertg');
   else toast('✅ OD '+n2(eff), 'bg-emerald-900 border border-emerald-500');
@@ -466,6 +473,22 @@ function doHarvest(label){ const fl=fL(label);
   logg(fl,'harvest',t('concrete')); confetti(); beep(660,140); setTimeout(()=>beep(880,180),150); toast(tx('✅ Kolba '+label+' tamamland!','✅ Flask '+label+' complete!'),'bg-emerald-900 border border-emerald-500'); closeModal(); }
 
 /* ---- ✎ TUZATISH: vaqt va hajmni qo'lda o'zgartirish ---- */
+function gstr(nmN){ const e=document.querySelector('.modal-in[name='+nmN+']'); return e?e.value.trim():null; }
+function dtLocalIso(ts){ const d=new Date(ts); const p=function(n){return String(n).padStart(2,'0');};
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
+let ODE=null;
+function odApplyRow(lab,i2){ const fl=fL(lab); if(!fl||!fl.ods[i2]){ ODE=null; closeModal(); return; }
+  const v=gval('od_ed_val'); const tsel=document.querySelector('.modal-in[name=od_ed_ts]');
+  const t2=tsel&&tsel.value?new Date(tsel.value).getTime():NaN; const o=fl.ods[i2]; const oldV=n2(effOd(o));
+  if(v!=null&&v>=0){ o.od=v; o.ts=isNaN(t2)?o.ts:t2;
+    logg(fl,'fix',tx('OD tuzatildi: ','OD fixed: ')+oldV+' → '+n2(effOd(o))+' @ '+new Date(o.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+    render(); }
+  ODE=null; modalFix(lab); }
+function odDelRow(lab,i2){ const fl=fL(lab); if(!fl||!fl.ods[i2]) return;
+  if(!confirm(tx("Bu o'lchov o'chiriladi. Ishonchingiz komilmi?","Delete this reading. Sure?"))) return;
+  const o=fl.ods.splice(i2,1)[0];
+  logg(fl,'fix',tx("O'chov o'chirildi: ","Reading deleted: ")+n2(effOd(o))+' @ '+new Date(o.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+  render(); ODE=null; modalFix(lab); }
 function modalFix(label){ const fl=fL(label); if(!fl) return;
   openModal('<h3 class="text-lg font-bold">✎ Tuzatish — kolba '+label+' <span class="text-xs text-slate-400">(run '+fl.run+')</span></h3>'+
   '<p class="text-xs text-slate-400 mb-3">'+tx('Esdan chiqdimi yoki xatolikmi? Faqat keraklisini toldi:','Forgot or made a mistake? Fill only what you need:')+'</p>'+
@@ -479,6 +502,22 @@ function modalFix(label){ const fl=fL(label); if(!fl) return;
    '<input name="fx_inc" type="number" min="0" step="0.1" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="e.g. 6"></label>':'')+
   '<label class="block">💧 '+tx('Hajmni togrilash: qoshish yoki ayirish (mkl; masalan 100 yoki -100)','Volume fix: add or remove (µL, e.g. 100 or -100)')+
   '<input name="fx_vol" type="number" step="any" class="modal-in w-full mt-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2.5 tnum" placeholder="0"></label>'+
+  (fl.ods&&fl.ods.length?
+   '<div class="pt-2"><b class="text-xs text-slate-400 uppercase tracking-wide">'+tx("OD o'lchovlari","OD readings")+'</b>'+
+   fl.ods.map(function(o,i2){ const late=(ODE&&ODE.label===label&&ODE.i===i2);
+     const tm=new Date(o.ts).toLocaleString([],{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+     return '<div class="flex items-center gap-1 text-xs border-t border-slate-800 py-1">'+
+      '<span class="tnum text-slate-500 w-36">'+tm+'</span>'+
+      '<span class="tnum w-16">OD '+n2(effOd(o))+'</span>'+
+      (late?
+        '<input name="od_ed_val" class="modal-in w-16 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 tnum" value="'+o.od+'">'+
+        '<input name="od_ed_ts" type="datetime-local" class="modal-in flex-1 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 tnum" value="'+dtLocalIso(o.ts)+'">'+
+        '<button onclick="odApplyRow(\''+label+'\','+i2+')" class="px-2 py-1 rounded-lg bg-emerald-700">✔</button>'+
+        '<button onclick="ODE=null;modalFix(\''+label+'\')" class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-600">✕</button>'
+       :
+        '<button onclick="ODE={label:\''+label+'\',i:'+i2+'};modalFix(\''+label+'\')" class="ml-auto px-2 py-1 rounded-lg bg-slate-800 border border-slate-600" title="tahrirlash">✏</button>'+
+        '<button onclick="odDelRow(\''+label+'\','+i2+')" class="px-2 py-1 rounded-lg bg-red-900 border border-red-600" title="ochirish">✖</button>')+
+      '</div>'; }).join('')+'</div>':'')+
   '</div>'+
   '<div class="flex gap-2 mt-4"><button onclick="doFix()" class="lbtn px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-extrabold">✔ Qollash</button>'+
   '<button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 border border-slate-600">✕</button></div>');
