@@ -324,6 +324,13 @@ function growRate(fl){ const pts=fl.ods.filter(o=>effOd(o)>0);
     const mu=den>1e-9?num/den:NaN;
     if(isFinite(mu)&&mu>0.1&&mu<3.5) return mu; }
   return 0.9; }  // fallback growth rate @ 37°C (pre-IPTG)
+function fixTimersOnce(){ if(!S.fixedTimers){ if(!isEd()) return;
+  let n=0;
+  S.flasks.forEach(fl=>{ if(fl.step==='induced'&&!fl.harvested&&fl.inducedTs){
+    const want=M(fl).expH;
+    if(fl.incubH!==want){ fl.incubH=want; fl.incubEnds=fl.inducedTs+want*3.6e6; n++; } } });
+  S.fixedTimers='1'; save();
+  if(n) toast(tx("⏱ "+n+" kolba IPTG-taymeri yangi jadvalga moslandi","⏱ "+n+" flask timers aligned to the design")); } }
 function estGrowthH(odT){
   return odT>1? 4:2.5;   // 37°C (hammasi IPTG gacha 37°C da o\'sadi; handwriting: OD 0.4 ~2.5h)
 }
@@ -713,18 +720,25 @@ function drawOd(fl,m){ if(typeof Chart==='undefined') return; const el=$('#odCha
   const win=S.chartWin||20;
   const light=document.body.classList.contains('day'); const tk=light?'#64748b':'#94a3b8', lg=light?'#334155':'#cbd5e1';
   const pts=fl.startTs? fl.ods.map(o=>({x:(o.ts-fl.startTs)/3.6e6,y:effOd(o)})):[];
-  const mu=growRate(fl); let pred=[];
-  if(pts.length){ const p0=pts[0], tEnd=(now()-fl.startTs)/3.6e6+2;
-    const tTar=p0.x+Math.log(m.od/p0.y)/mu; const tMax=Math.max(tEnd,tTar+1);
-    for(let tt=p0.x; tt<=tMax; tt+=Math.max(0.1,(tMax-p0.x)/40)) pred.push({x:tt,y:Math.min(p0.y*Math.exp(mu*(tt-p0.x)),m.od*1.15)}); }
+  const mu=Math.min(2.2,Math.max(0.15,growRate(fl))); let pred=[];
+  if(pts.length>=2){ const p0=pts[0];
+    if(p0.y>0.02){ let tTar=p0.x+Math.log(m.od/p0.y)/mu; if(!(tTar>0)) tTar=0;
+      const t0=Math.max(0,p0.x);
+      const tEnd=Math.max(0,Math.min(win,(now()-fl.startTs)/3.6e6+2));
+      const tMax=Math.max(t0,Math.min(win,Math.max(tEnd,tTar+0.5)));
+      const step=Math.max(0.1,(tMax-t0)/30);
+      for(let tt=t0; tt<=tMax+1e-9; tt+=step) pred.push({x:tt,y:Math.min(m.od*1.05,p0.y*Math.exp(mu*(tt-p0.x)))}); } }
   odChart=new Chart(el,{data:{datasets:[
     {type:'line',label:'OD',data:pts,showLine:true,borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.2)',pointRadius:5,tension:.25,fill:true},
-    {type:'line',label:tx('prognoz','prediction'),data:pred,borderColor:'#94a3b8',borderDash:[5,5],pointRadius:0},
-    {type:'line',label:tx('maqsad','target')+' '+m.od,data:[{x:0,y:m.od},{x:m.expH+4,y:m.od}],borderColor:'#4ade80',borderDash:[8,6],pointRadius:0},
-    {type:'line',label:tx('reader limiti','reader limit'),data:[{x:0,y:S.settings.readerMaxOd},{x:m.expH+4,y:S.settings.readerMaxOd}],borderColor:'#ef4444',borderDash:[2,5],pointRadius:0}]},
+    {type:'line',label:tx('prognoz','prediction'),data:pred,borderColor:'#94a3b8',borderDash:[5,5],pointRadius:0,pointHitRadius:0},
+    {type:'line',label:tx('maqsad','target')+' '+m.od,data:[{x:0,y:m.od},{x:win,y:m.od}],borderColor:'#4ade80',borderDash:[8,6],pointRadius:0,pointHitRadius:0},
+    {type:'line',label:tx('reader limiti','reader limit'),data:[{x:0,y:S.settings.readerMaxOd},{x:win,y:S.settings.readerMaxOd}],borderColor:'#ef4444',borderDash:[2,5],pointRadius:0,pointHitRadius:0}]},
     options:{responsive:true,maintainAspectRatio:false,animation:false,
+     interaction:{mode:'nearest',axis:'x',intersect:false},
      scales:{x:{type:'linear',title:{display:true,text:'h'},min:0,max:win,ticks:{color:tk},grid:{color:'#1e293b'}},y:{beginAtZero:true,suggestedMax:1.5,ticks:{color:tk},grid:{color:'#1e293b'}}},
-     plugins:{legend:{labels:{color:lg,boxWidth:12}}}}});
+     plugins:{legend:{labels:{color:lg,boxWidth:12}},
+      tooltip:{callbacks:{title:function(it){ return it&&it.length? it[0].parsed.x.toFixed(1)+' h':''; },
+        label:function(c){ return c.dataset.label+': '+c.parsed.y.toFixed(2); }}}}}});
 }
 
 /* ---- TA'SIRLAR ---- */
@@ -992,6 +1006,7 @@ applyTheme(); applySound();
 S_BASE=JSON.parse(JSON.stringify(S));
 render();
 cloudBoot();
+setTimeout(fixTimersOnce,3000);
 setInterval(tick,1000);
 console.log('VentLab OS v3 ready.');
 
