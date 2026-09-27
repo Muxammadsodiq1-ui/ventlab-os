@@ -825,10 +825,10 @@ function render(){ destroy();
 /* ---- ☁️ BULUT SINXRONIZATSIYA: Supabase + E2E shifrlash (AES-GCM) ---- */
 const CLOUD={url:'https://ynsfbimxokzncmfaiqhs.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inluc2ZiaW14b2t6bmNtZmFpcWhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NzYzODMsImV4cCI6MjEwNjA1MjM4M30._gN2oMt9zkCbHxBSeM3RvLeJtSKg4oYwJsKzGwzd8Yc',email:'vent@gmail.com'};
 let SB=null,_ck=null,_ckp='',cloudOn=false,cloudSub=null,cloudDirty=0,cloudTimer=null,cloudErr='',cloudLast=0,cloudWho='';
-function sbReady(){ if(typeof supabase==='undefined') return false;
-  if(!SB){ if(CLOUD.url.indexOf('VASHLOYIHA')>=0||CLOUD.key.indexOf('ANON_KALIT')>=0) return false;
-    SB=supabase.createClient(CLOUD.url,CLOUD.key); }
-  return true; }
+function cloudReason(){ if(typeof supabase==='undefined') return 'sdk';
+  if(!CLOUD.url||!CLOUD.key||CLOUD.url.indexOf('VASHLOYIHA')>=0||CLOUD.key.indexOf('ANON_KALIT')>=0) return 'cfg';
+  return null; }
+function sbReady(){ const rr=cloudReason(); if(rr) return false; if(!SB) SB=supabase.createClient(CLOUD.url,CLOUD.key); return true; }
 function cloudPass(){ return localStorage.getItem('vl_pass')||''; }
 function cloudName(){ return localStorage.getItem('vl_name')||'lab'; }
 async function cloudKey(){ const p=cloudPass(); if(_ck&&_ckp===p) return _ck; const e=new TextEncoder();
@@ -880,7 +880,9 @@ function cloudStatus(){ const b=$('#cloudBtn'); if(!b) return;
 async function cloudLogin(){ const el=$('#cpass'); const p=el?el.value:''; if(!p) return;
   const nm=$('#cnm'); localStorage.setItem('vl_name',nm?nm.value||'lab':'lab');
   localStorage.setItem('vl_pass',p); _ck=null; _ckp='';
-  if(!sbReady()){ toast(tx('CLOUD konfiguratsiyasi toldirilmagan','CLOUD config not filled'),'bg-red-900'); return; }
+  const rr=cloudReason();
+  if(rr==='sdk'){ toast(tx('Supabase kutubxonasi yuklanmadi: ESKI FAYL NUSXASI yoki internet','Supabase SDK not loaded: stale copy or offline'),'bg-red-900'); return; }
+  if(rr==='cfg'){ toast(tx('ESKI NUSXA: bu faylda CLOUD konfiguratsiyasi eski','STALE COPY: CLOUD config is old in this file'),'bg-red-900'); return; }
   cloudOn=true; cloudErr='';
   if(!await cloudAuth()){ cloudOn=false; localStorage.removeItem('vl_pass'); toast(tx('Parol xato','bad password'),'bg-red-900'); cloudStatus(); return; }
   const ever=localStorage.getItem('vl_ever'); const row=await cloudFetch();
@@ -894,7 +896,7 @@ function cloudLogout(){ cloudOn=false; localStorage.removeItem('vl_pass'); _ck=n
   toast(tx('Bulutdan uzildi','disconnected')); cloudStatus(); }
 function cloudModal(){ const who=cloudWho?(cloudWho+' — '+new Date(cloudLast).toLocaleString()):tx('hali yoq','none yet');
   openModal('<h3 class="text-lg font-bold mb-1">☁️ '+tx('Bulut sinxronizatsiya','Cloud sync')+'</h3>'+
-   '<p class="text-xs text-slate-400 mb-3">'+tx("Malumot uchidan-uchiga shifrlanadi (AES-GCM).","Data is encrypted end-to-end (AES-GCM).")+' '+tx('Oxirgi uzgarish:','Last change:')+' '+who+'</p>'+
+   '<p class="text-xs text-slate-400 mb-3">'+tx("Malumot uchidan-uchiga shifrlanadi (AES-GCM).","Data is encrypted end-to-end (AES-GCM).")+' '+tx('Oxirgi uzgarish:','Last change:')+' '+who+' · server: '+CLOUD.url.replace('https://','').split('.')[0]+'</p>'+
    '<label class="block text-sm">'+tx('Ismingiz','Your name')+'<input id="cnm" class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5" value="'+esc(cloudName())+'"></label>'+
    '<label class="block text-sm mt-2">'+tx('Jamoa paroli','Team password')+'<input id="cpass" type="password" class="inv-in w-full mt-1 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5"></label>'+
    '<div class="flex gap-2 mt-4"><button onclick="cloudLogin()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold">'+tx('Ulanish','Connect')+'</button>'+
